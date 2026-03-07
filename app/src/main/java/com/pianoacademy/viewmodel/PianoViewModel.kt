@@ -31,6 +31,7 @@ data class PianoUiState(
     val showNoteNames: Boolean = true,
     val showNextHint: Boolean = true,
     val showSettings: Boolean = false,
+    val showSongPicker: Boolean = false,
     val isLandscape: Boolean = false,
     val gameResult: GameResult? = null,
     val bestScores: Map<String, Int> = emptyMap(),
@@ -263,6 +264,14 @@ class PianoViewModel : ViewModel() {
 
     fun toggleSettings() {
         _uiState.update { it.copy(showSettings = !it.showSettings) }
+    }
+
+    fun toggleSongPicker() {
+        _uiState.update { it.copy(showSongPicker = !it.showSongPicker) }
+    }
+
+    fun dismissSongPicker() {
+        _uiState.update { it.copy(showSongPicker = false) }
     }
 
     fun setLandscape(landscape: Boolean) {
