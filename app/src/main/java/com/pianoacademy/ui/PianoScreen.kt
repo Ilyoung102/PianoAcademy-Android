@@ -20,27 +20,12 @@ fun PianoScreen(
 ) {
     val state by vm.uiState.collectAsStateWithLifecycle()
 
-    val onPlayModeChange: (PlayMode) -> Unit = { vm.setPlayMode(it) }
-    val onPlayStop: () -> Unit = {
-        if (state.isPlaying) {
-            vm.stopPlayback()
-        } else {
-            state.selectedSong?.let { song ->
-                when (state.playMode) {
-                    PlayMode.AUTO        -> vm.startAutoPlay(song)
-                    PlayMode.INTERACTIVE -> vm.startInteractive(song)
-                    PlayMode.FREE        -> {}
-                }
-            }
-        }
-    }
-
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(Color(0xFF0A0D14), Color(0xFF0F1117), Color(0xFF111520))
+                    colors = listOf(Color(0xFF080A10), Color(0xFF0F1117), Color(0xFF111520))
                 )
             )
     ) {
@@ -60,9 +45,8 @@ fun PianoScreen(
                 stepIndex = state.stepIndex,
                 totalSteps = state.selectedSong?.steps?.size ?: 0,
                 onSongPickerOpen = { vm.toggleSongPicker() },
-                onPlayModeChange = onPlayModeChange,
+                onModeButtonClick = { vm.handleModeButtonClick(it) },
                 onFallingModeChange = { vm.setFallingMode(it) },
-                onPlayStop = onPlayStop,
                 onSoundModeChange = { vm.setSoundMode(it) },
                 onVolumeChange = { vm.setVolume(it) },
                 onTempoChange = { vm.setTempoMultiplier(it) },
@@ -127,22 +111,17 @@ fun PianoScreen(
 }
 
 @Composable
-private fun ScoreArea(
-    state: PianoUiState,
-    modifier: Modifier = Modifier
-) {
+private fun ScoreArea(state: PianoUiState, modifier: Modifier = Modifier) {
     val song = state.selectedSong
     if (song == null) {
         Box(
-            modifier = modifier.fillMaxWidth().background(Color(0xFF0D1018)),
+            modifier = modifier.fillMaxWidth().background(Color(0xFF0C0E14)),
             contentAlignment = Alignment.Center
         ) {
             androidx.compose.material3.Text(
                 "위 버튼을 눌러 곡을 선택하세요",
-                color = Color(0xFF3A4560),
-                fontSize = androidx.compose.ui.unit.TextUnit(
-                    13f, androidx.compose.ui.unit.TextUnitType.Sp
-                )
+                color = Color(0xFF2E3450),
+                fontSize = androidx.compose.ui.unit.TextUnit(13f, androidx.compose.ui.unit.TextUnitType.Sp)
             )
         }
         return
