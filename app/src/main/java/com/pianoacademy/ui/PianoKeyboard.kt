@@ -1,8 +1,8 @@
 package com.pianoacademy.ui
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -10,7 +10,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -25,7 +27,7 @@ import com.pianoacademy.ui.theme.PianoColors
 data class KeyLayout(
     val note: String,
     val type: KeyType,
-    val xFraction: Float,   // 0.0 ~ 1.0 (건반 영역 내 위치)
+    val xFraction: Float,
     val widthFraction: Float
 )
 
@@ -69,7 +71,6 @@ fun PianoKeyboard(
     val whites = remember(keyLayouts) { keyLayouts.filter { it.type == KeyType.WHITE } }
     val blacks = remember(keyLayouts) { keyLayouts.filter { it.type == KeyType.BLACK } }
 
-    // 현재 터치 포인터 → 음 매핑
     val pointerNotes = remember { mutableStateMapOf<Long, String>() }
     var keyboardWidthPx by remember { mutableStateOf(0f) }
     var keyboardHeightPx by remember { mutableStateOf(0f) }
@@ -79,13 +80,11 @@ fun PianoKeyboard(
         val relX = offset.x / keyboardWidthPx
         val relY = offset.y / keyboardHeightPx
 
-        // 검은 건반 먼저 체크 (위에 있으므로)
         val blackKey = blacks.firstOrNull { k ->
-            relX >= k.xFraction && relX <= k.xFraction + k.widthFraction && relY < 0.62f
+            relX >= k.xFraction && relX <= k.xFraction + k.widthFraction && relY < 0.60f
         }
         if (blackKey != null) return blackKey.note
 
-        // 흰 건반 체크
         return whites.firstOrNull { k ->
             relX >= k.xFraction && relX <= k.xFraction + k.widthFraction
         }?.note
@@ -94,7 +93,11 @@ fun PianoKeyboard(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(Color(0xFF1A1A2E))
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Color(0xFF0A0C14), Color(0xFF151825))
+                )
+            )
             .onGloballyPositioned { coords ->
                 keyboardWidthPx = coords.size.width.toFloat()
                 keyboardHeightPx = coords.size.height.toFloat()
@@ -107,7 +110,6 @@ fun PianoKeyboard(
                             val pointerId = change.id.value
                             when {
                                 change.pressed && !pointerNotes.containsKey(pointerId) -> {
-                                    // 새 터치 시작
                                     val note = noteAtPosition(change.position)
                                     if (note != null) {
                                         pointerNotes[pointerId] = note
@@ -116,7 +118,6 @@ fun PianoKeyboard(
                                     change.consume()
                                 }
                                 change.pressed && pointerNotes.containsKey(pointerId) -> {
-                                    // 드래그 이동
                                     val newNote = noteAtPosition(change.position)
                                     val oldNote = pointerNotes[pointerId]
                                     if (newNote != oldNote) {
@@ -131,7 +132,6 @@ fun PianoKeyboard(
                                     change.consume()
                                 }
                                 !change.pressed && pointerNotes.containsKey(pointerId) -> {
-                                    // 터치 종료
                                     val note = pointerNotes.remove(pointerId)
                                     if (note != null) onNoteOff(note)
                                     change.consume()
@@ -144,19 +144,34 @@ fun PianoKeyboard(
     ) {
         // ── 흰 건반 ──────────────────────────────────────────
         whites.forEach { key ->
-            val isActive = activeKeys.contains(key.note)
+            val isActive    = activeKeys.contains(key.note)
             val isHighlight = highlightKeys.contains(key.note)
-            val isWrong = wrongKeys.contains(key.note)
-            val isCorrect = correctKeys.contains(key.note)
+            val isWrong     = wrongKeys.contains(key.note)
+            val isCorrect   = correctKeys.contains(key.note)
 
-            val bgColor = when {
-                isWrong   -> PianoColors.KeyWrong
-                isCorrect -> PianoColors.KeyCorrect
-                isActive  -> PianoColors.WhiteKeyPress
-                isHighlight -> PianoColors.KeyHighlight.copy(alpha = 0.4f)
-                else -> PianoColors.WhiteKey
+            val bgBrush: Brush = when {
+                isWrong   -> Brush.verticalGradient(listOf(PianoColors.KeyWrong, PianoColors.KeyWrong.copy(alpha = 0.7f)))
+                isCorrect -> Brush.verticalGradient(listOf(PianoColors.KeyCorrect, PianoColors.KeyCorrect.copy(alpha = 0.8f)))
+                isActive  -> Brush.verticalGradient(listOf(Color(0xFFB8D4FF), PianoColors.WhiteKeyPress))
+                isHighlight -> Brush.verticalGradient(
+                    listOf(
+                        PianoColors.Amber.copy(alpha = 0.55f),
+                        PianoColors.WhiteKey.copy(alpha = 0.92f),
+                        PianoColors.WhiteKey
+                    )
+                )
+                else -> Brush.verticalGradient(
+                    listOf(Color(0xFFF0F1F3), Color(0xFFE8E9EC), Color(0xFFDFE0E4))
+                )
             }
-            val borderColor = if (isHighlight && !isActive) PianoColors.KeyHighlight else Color(0xFFCCCCCC)
+
+            val borderColor = when {
+                isHighlight && !isActive -> PianoColors.Amber
+                isWrong                 -> PianoColors.KeyWrong
+                isCorrect               -> PianoColors.KeyCorrect
+                else                    -> Color(0xFFBBBCC0)
+            }
+            val borderWidth = if (isHighlight || isWrong || isCorrect) 1.5.dp else 0.5.dp
 
             Box(
                 modifier = Modifier
@@ -166,50 +181,91 @@ fun PianoKeyboard(
                         (key.xFraction * keyboardWidthPx).toDp()
                     })
                     .padding(horizontal = 0.5.dp)
-                    .background(bgColor, RoundedCornerShape(bottomStart = 4.dp, bottomEnd = 4.dp))
-                    .border(0.5.dp, borderColor, RoundedCornerShape(bottomStart = 4.dp, bottomEnd = 4.dp)),
+                    .clip(RoundedCornerShape(bottomStart = 5.dp, bottomEnd = 5.dp))
+                    .background(bgBrush)
+                    .border(
+                        borderWidth,
+                        borderColor,
+                        RoundedCornerShape(bottomStart = 5.dp, bottomEnd = 5.dp)
+                    ),
                 contentAlignment = Alignment.BottomCenter
             ) {
                 if (showNoteNames || isHighlight) {
-                    Text(
-                        text = getKoreanName(key.note),
-                        fontSize = 7.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = when {
-                            isWrong || isCorrect || isActive -> Color.White
-                            isHighlight -> PianoColors.Amber
-                            else -> Color(0xFF666666)
-                        },
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(bottom = 3.dp)
-                    )
+                    val noteName = getKoreanName(key.note)
+                    // 힌트 원형 배지
+                    if (isHighlight && !isActive && !isWrong && !isCorrect) {
+                        Box(
+                            modifier = Modifier
+                                .padding(bottom = 4.dp)
+                                .size(18.dp)
+                                .clip(RoundedCornerShape(50))
+                                .background(PianoColors.Amber),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                noteName,
+                                fontSize = 7.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color(0xFF1A0A00),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = noteName,
+                            fontSize = 7.sp,
+                            fontWeight = if (isActive || isHighlight) FontWeight.Bold else FontWeight.Normal,
+                            color = when {
+                                isWrong   -> Color.White
+                                isCorrect -> Color.White
+                                isActive  -> Color(0xFF1A3A6A)
+                                else      -> Color(0xFF777A82)
+                            },
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                    }
                 }
             }
         }
 
         // ── 검은 건반 ─────────────────────────────────────────
         blacks.forEach { key ->
-            val isActive = activeKeys.contains(key.note)
+            val isActive    = activeKeys.contains(key.note)
             val isHighlight = highlightKeys.contains(key.note)
-            val isWrong = wrongKeys.contains(key.note)
-            val isCorrect = correctKeys.contains(key.note)
+            val isWrong     = wrongKeys.contains(key.note)
+            val isCorrect   = correctKeys.contains(key.note)
 
-            val bgColor = when {
-                isWrong   -> PianoColors.KeyWrong
-                isCorrect -> PianoColors.KeyCorrect
-                isActive  -> PianoColors.BlackKeyPress
-                isHighlight -> PianoColors.KeyHighlight.copy(alpha = 0.7f)
-                else -> PianoColors.BlackKey
+            val bgBrush: Brush = when {
+                isWrong   -> Brush.verticalGradient(listOf(PianoColors.KeyWrong, PianoColors.KeyWrong.copy(alpha = 0.6f)))
+                isCorrect -> Brush.verticalGradient(listOf(PianoColors.KeyCorrect, PianoColors.KeyCorrect.copy(alpha = 0.7f)))
+                isActive  -> Brush.verticalGradient(listOf(Color(0xFF2D4A8A), Color(0xFF1A2E5A)))
+                isHighlight -> Brush.verticalGradient(
+                    listOf(PianoColors.Amber.copy(alpha = 0.9f), Color(0xFF92400E))
+                )
+                else -> Brush.verticalGradient(
+                    listOf(Color(0xFF1E2030), Color(0xFF141620), Color(0xFF0E101A))
+                )
             }
 
             Box(
                 modifier = Modifier
-                    .fillMaxHeight(0.62f)
+                    .fillMaxHeight(0.60f)
                     .fillMaxWidth(key.widthFraction)
                     .offset(x = with(LocalDensity.current) {
                         (key.xFraction * keyboardWidthPx).toDp()
                     })
-                    .background(bgColor, RoundedCornerShape(bottomStart = 3.dp, bottomEnd = 3.dp))
+                    .clip(RoundedCornerShape(bottomStart = 4.dp, bottomEnd = 4.dp))
+                    .background(bgBrush)
+                    .then(
+                        if (isHighlight && !isActive)
+                            Modifier.border(
+                                1.5.dp,
+                                PianoColors.Amber,
+                                RoundedCornerShape(bottomStart = 4.dp, bottomEnd = 4.dp)
+                            )
+                        else Modifier
+                    )
             )
         }
     }

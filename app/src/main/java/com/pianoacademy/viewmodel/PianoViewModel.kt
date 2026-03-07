@@ -218,6 +218,12 @@ class PianoViewModel : ViewModel() {
         _uiState.update { it.copy(isPlaying = false, activeKeys = emptySet()) }
     }
 
+    // ── 재생 모드 변경 ────────────────────────────────────────
+    fun setPlayMode(mode: PlayMode) {
+        stopPlayback()
+        _uiState.update { it.copy(playMode = mode) }
+    }
+
     // ── 상태 변경 ─────────────────────────────────────────────
     fun selectLevel(level: Int) {
         stopPlayback()
