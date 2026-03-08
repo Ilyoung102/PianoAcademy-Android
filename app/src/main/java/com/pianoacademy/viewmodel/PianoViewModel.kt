@@ -9,7 +9,7 @@ import com.pianoacademy.data.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 
-enum class PlayMode { FREE, AUTO, INTERACTIVE }
+enum class PlayMode { FREE, AUTO, INTERACTIVE, PRACTICE }
 enum class FallingMode { OFF, DOWN, UP }
 
 data class PianoUiState(
@@ -61,6 +61,9 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
         _uiState.update { it.copy(activeKeys = it.activeKeys + note) }
         val state = _uiState.value
         if (state.playMode == PlayMode.INTERACTIVE && state.isPlaying) {
+            handleInteractiveInput(note)
+        }
+        if (state.playMode == PlayMode.PRACTICE && state.isPlaying) {
             handleInteractiveInput(note)
         }
     }
@@ -138,13 +141,13 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun startInteractive(song: Song) {
+    fun startInteractive(song: Song, mode: PlayMode = PlayMode.INTERACTIVE) {
         stopPlayback()
         wrongCount = 0
         val firstStep = song.steps.firstOrNull()
         _uiState.update { it.copy(
             selectedSong = song,
-            playMode = PlayMode.INTERACTIVE,
+            playMode = mode,
             isPlaying = true,
             stepIndex = 0,
             wrongCount = 0,
@@ -188,7 +191,8 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
                 state.selectedSong?.let { song ->
                     when (mode) {
                         PlayMode.AUTO        -> startAutoPlay(song)
-                        PlayMode.INTERACTIVE -> startInteractive(song)
+                        PlayMode.INTERACTIVE -> startInteractive(song, PlayMode.INTERACTIVE)
+                        PlayMode.PRACTICE    -> startInteractive(song, PlayMode.PRACTICE)
                         else -> {}
                     }
                 }

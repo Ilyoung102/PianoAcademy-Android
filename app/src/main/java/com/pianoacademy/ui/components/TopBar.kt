@@ -39,6 +39,7 @@ fun TopBar(
     showNextHint: Boolean,
     stepIndex: Int = 0,
     totalSteps: Int = 0,
+    isLandscape: Boolean = false,
     onSongPickerOpen: () -> Unit,
     onModeButtonClick: (PlayMode) -> Unit,
     onFallingModeChange: (FallingMode) -> Unit,
@@ -51,164 +52,265 @@ fun TopBar(
     modifier: Modifier = Modifier
 ) {
     val levelCfg = LEVEL_CONFIG[selectedLevel]
+    val canPlay = selectedSong != null
 
     Column(
         modifier = modifier
             .fillMaxWidth()
             .background(Brush.verticalGradient(listOf(Color(0xFF080A10), Color(0xFF0E1018))))
     ) {
-        // ── Row 1: 곡선택 | 모드버튼 토글 | 설정 ──────────────
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(horizontal = 8.dp, vertical = 5.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            // 곡 선택 버튼
+        if (isLandscape) {
+            // ── 가로모드: 한 줄 ────────────────────────────────────────
             Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFF181B28))
-                    .border(1.dp, Color(0xFF282B3E), RoundedCornerShape(8.dp))
-                    .clickable { onSongPickerOpen() }
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(horizontal = 6.dp, vertical = 3.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text(levelCfg?.icon ?: "🎵", fontSize = 14.sp)
-                Text(
-                    selectedSong?.title ?: "곡 선택 ▾",
-                    fontSize = 11.sp,
-                    fontWeight = if (selectedSong != null) FontWeight.SemiBold else FontWeight.Normal,
-                    color = if (selectedSong != null) PianoColors.TextPrimary else PianoColors.TextMuted,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
-                if (selectedSong != null) Text("▾", fontSize = 11.sp, color = PianoColors.TextMuted)
-            }
-
-            // ── 모드 토글 버튼 3개 ──────────────────────────────
-            val canPlay = selectedSong != null
-
-            // 자유
-            ModeToggleBtn(
-                label = "자유",
-                icon = "🎸",
-                isActive = playMode == PlayMode.FREE,
-                isPlaying = false,
-                enabled = true,
-                activeColor = PianoColors.Amber
-            ) { onModeButtonClick(PlayMode.FREE) }
-
-            // 재생
-            ModeToggleBtn(
-                label = if (playMode == PlayMode.AUTO && isPlaying) "정지" else "재생",
-                icon = if (playMode == PlayMode.AUTO && isPlaying) "■" else "▶",
-                isActive = playMode == PlayMode.AUTO,
-                isPlaying = playMode == PlayMode.AUTO && isPlaying,
-                enabled = canPlay,
-                activeColor = PianoColors.Blue
-            ) { onModeButtonClick(PlayMode.AUTO) }
-
-            // 따라하기
-            ModeToggleBtn(
-                label = if (playMode == PlayMode.INTERACTIVE && isPlaying) "정지" else "따라하기",
-                icon = if (playMode == PlayMode.INTERACTIVE && isPlaying) "■" else "✋",
-                isActive = playMode == PlayMode.INTERACTIVE,
-                isPlaying = playMode == PlayMode.INTERACTIVE && isPlaying,
-                enabled = canPlay,
-                activeColor = PianoColors.Emerald
-            ) { onModeButtonClick(PlayMode.INTERACTIVE) }
-
-            // 설정
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(if (showSettings) PianoColors.Amber.copy(alpha = 0.2f) else Color.Transparent)
-                    .clickable { onToggleSettings() }
-                    .padding(5.dp)
-            ) {
-                Icon(
-                    Icons.Default.Settings, "설정",
-                    tint = if (showSettings) PianoColors.Amber else PianoColors.TextSecondary,
-                    modifier = Modifier.size(19.dp)
-                )
-            }
-        }
-
-        // ── Row 2: 뷰모드 | 음색 ────────────────────────────────
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp)
-                .padding(bottom = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(3.dp)
-        ) {
-            listOf(FallingMode.OFF to "📄 악보", FallingMode.DOWN to "⬇ 폭포", FallingMode.UP to "⬆ 역폭")
-                .forEach { (mode, label) ->
-                    SmallChip(label, mode == fallingMode, PianoColors.Blue) { onFallingModeChange(mode) }
+                // 곡 선택 (절반 크기)
+                Row(
+                    modifier = Modifier
+                        .weight(0.8f)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color(0xFF181B28))
+                        .border(1.dp, Color(0xFF282B3E), RoundedCornerShape(6.dp))
+                        .clickable { onSongPickerOpen() }
+                        .padding(horizontal = 6.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Text(levelCfg?.icon ?: "🎵", fontSize = 11.sp)
+                    Text(
+                        selectedSong?.title ?: "곡 선택 ▾",
+                        fontSize = 10.sp,
+                        fontWeight = if (selectedSong != null) FontWeight.SemiBold else FontWeight.Normal,
+                        color = if (selectedSong != null) PianoColors.TextPrimary else PianoColors.TextMuted,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
-            Spacer(Modifier.weight(1f))
 
-            SoundMode.values().forEach { sm ->
-                val sel = sm == soundMode
-                val bgMod = if (sel)
-                    Modifier.background(Brush.verticalGradient(listOf(PianoColors.Violet, Color(0xFF6D28D9))), RoundedCornerShape(5.dp))
-                else
-                    Modifier.background(Color(0xFF181B28), RoundedCornerShape(5.dp))
+                // 모드 버튼 4개 (compact)
+                ModeToggleBtn("자유", "🎸", playMode == PlayMode.FREE, false, true, PianoColors.Amber, compact = true) { onModeButtonClick(PlayMode.FREE) }
+                ModeToggleBtn(
+                    label = if (playMode == PlayMode.AUTO && isPlaying) "■" else "재생",
+                    icon = if (playMode == PlayMode.AUTO && isPlaying) "" else "▶",
+                    isActive = playMode == PlayMode.AUTO,
+                    isPlaying = playMode == PlayMode.AUTO && isPlaying,
+                    enabled = canPlay, activeColor = PianoColors.Blue, compact = true
+                ) { onModeButtonClick(PlayMode.AUTO) }
+                ModeToggleBtn(
+                    label = if (playMode == PlayMode.INTERACTIVE && isPlaying) "■" else "따라",
+                    icon = if (playMode == PlayMode.INTERACTIVE && isPlaying) "" else "✋",
+                    isActive = playMode == PlayMode.INTERACTIVE,
+                    isPlaying = playMode == PlayMode.INTERACTIVE && isPlaying,
+                    enabled = canPlay, activeColor = PianoColors.Emerald, compact = true
+                ) { onModeButtonClick(PlayMode.INTERACTIVE) }
+                ModeToggleBtn(
+                    label = if (playMode == PlayMode.PRACTICE && isPlaying) "■" else "혼자",
+                    icon = if (playMode == PlayMode.PRACTICE && isPlaying) "" else "🎓",
+                    isActive = playMode == PlayMode.PRACTICE,
+                    isPlaying = playMode == PlayMode.PRACTICE && isPlaying,
+                    enabled = canPlay, activeColor = Color(0xFF8B5CF6), compact = true
+                ) { onModeButtonClick(PlayMode.PRACTICE) }
+
+                // 구분선
+                Box(modifier = Modifier.width(1.dp).height(18.dp).background(Color(0xFF282B3E)))
+
+                // 뷰 모드 칩
+                listOf(FallingMode.OFF to "악보", FallingMode.DOWN to "폭↓", FallingMode.UP to "폭↑")
+                    .forEach { (mode, label) ->
+                        SmallChip(label, mode == fallingMode, PianoColors.Blue) { onFallingModeChange(mode) }
+                    }
+
+                // 음색 칩 (아이콘만)
+                SoundMode.values().forEach { sm ->
+                    val sel = sm == soundMode
+                    val bgMod = if (sel)
+                        Modifier.background(Brush.verticalGradient(listOf(PianoColors.Violet, Color(0xFF6D28D9))), RoundedCornerShape(4.dp))
+                    else
+                        Modifier.background(Color(0xFF181B28), RoundedCornerShape(4.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .then(bgMod)
+                            .border(0.5.dp, if (sel) PianoColors.Violet else Color(0xFF282B3E), RoundedCornerShape(4.dp))
+                            .clickable { onSoundModeChange(sm) }
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                    ) { Text(sm.icon, fontSize = 11.sp) }
+                }
+
+                // 설정
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(5.dp))
-                        .then(bgMod)
-                        .border(0.5.dp, if (sel) PianoColors.Violet else Color(0xFF282B3E), RoundedCornerShape(5.dp))
-                        .clickable { onSoundModeChange(sm) }
-                        .padding(horizontal = 5.dp, vertical = 3.dp)
-                ) { Text(sm.icon, fontSize = 12.sp) }
+                        .background(if (showSettings) PianoColors.Amber.copy(alpha = 0.2f) else Color.Transparent)
+                        .clickable { onToggleSettings() }
+                        .padding(4.dp)
+                ) {
+                    Icon(Icons.Default.Settings, "설정",
+                        tint = if (showSettings) PianoColors.Amber else PianoColors.TextSecondary,
+                        modifier = Modifier.size(16.dp))
+                }
             }
-        }
 
-        // ── 진행 바 ───────────────────────────────────────────
-        if (isPlaying && totalSteps > 0 && playMode != PlayMode.FREE) {
-            val progress = if (totalSteps > 1) stepIndex.toFloat() / (totalSteps - 1) else 0f
-            Column(modifier = Modifier.fillMaxWidth()) {
+            // 진행 바 (가로)
+            if (isPlaying && totalSteps > 0 && playMode != PlayMode.FREE) {
+                val progress = if (totalSteps > 1) stepIndex.toFloat() / (totalSteps - 1) else 0f
                 LinearProgressIndicator(
                     progress = { progress },
-                    modifier = Modifier.fillMaxWidth().height(3.dp),
+                    modifier = Modifier.fillMaxWidth().height(2.dp),
                     color = when (playMode) {
                         PlayMode.AUTO -> PianoColors.Blue
                         PlayMode.INTERACTIVE -> PianoColors.Emerald
+                        PlayMode.PRACTICE -> Color(0xFF8B5CF6)
                         else -> PianoColors.Amber
                     },
                     trackColor = Color(0xFF1A1D2A)
                 )
+            }
+
+        } else {
+            // ── 세로모드: 2줄 ─────────────────────────────────────────
+            // Row 1: 곡선택 | 모드버튼 | 설정
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(horizontal = 8.dp, vertical = 5.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
+            ) {
+                // 곡 선택
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFF181B28))
+                        .border(1.dp, Color(0xFF282B3E), RoundedCornerShape(8.dp))
+                        .clickable { onSongPickerOpen() }
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
-                    Text("$stepIndex / $totalSteps", fontSize = 9.sp, color = PianoColors.TextMuted)
+                    Text(levelCfg?.icon ?: "🎵", fontSize = 14.sp)
                     Text(
-                        "${(progress * 100).toInt()}%",
-                        fontSize = 9.sp,
+                        selectedSong?.title ?: "곡 선택 ▾",
+                        fontSize = 11.sp,
+                        fontWeight = if (selectedSong != null) FontWeight.SemiBold else FontWeight.Normal,
+                        color = if (selectedSong != null) PianoColors.TextPrimary else PianoColors.TextMuted,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (selectedSong != null) Text("▾", fontSize = 11.sp, color = PianoColors.TextMuted)
+                }
+
+                // 모드 버튼 4개
+                ModeToggleBtn("자유", "🎸", playMode == PlayMode.FREE, false, true, PianoColors.Amber) { onModeButtonClick(PlayMode.FREE) }
+                ModeToggleBtn(
+                    label = if (playMode == PlayMode.AUTO && isPlaying) "정지" else "재생",
+                    icon = if (playMode == PlayMode.AUTO && isPlaying) "■" else "▶",
+                    isActive = playMode == PlayMode.AUTO, isPlaying = playMode == PlayMode.AUTO && isPlaying,
+                    enabled = canPlay, activeColor = PianoColors.Blue
+                ) { onModeButtonClick(PlayMode.AUTO) }
+                ModeToggleBtn(
+                    label = if (playMode == PlayMode.INTERACTIVE && isPlaying) "정지" else "따라하기",
+                    icon = if (playMode == PlayMode.INTERACTIVE && isPlaying) "■" else "✋",
+                    isActive = playMode == PlayMode.INTERACTIVE, isPlaying = playMode == PlayMode.INTERACTIVE && isPlaying,
+                    enabled = canPlay, activeColor = PianoColors.Emerald
+                ) { onModeButtonClick(PlayMode.INTERACTIVE) }
+                ModeToggleBtn(
+                    label = if (playMode == PlayMode.PRACTICE && isPlaying) "정지" else "혼자하기",
+                    icon = if (playMode == PlayMode.PRACTICE && isPlaying) "■" else "🎓",
+                    isActive = playMode == PlayMode.PRACTICE, isPlaying = playMode == PlayMode.PRACTICE && isPlaying,
+                    enabled = canPlay, activeColor = Color(0xFF8B5CF6)
+                ) { onModeButtonClick(PlayMode.PRACTICE) }
+
+                // 설정
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(if (showSettings) PianoColors.Amber.copy(alpha = 0.2f) else Color.Transparent)
+                        .clickable { onToggleSettings() }
+                        .padding(5.dp)
+                ) {
+                    Icon(Icons.Default.Settings, "설정",
+                        tint = if (showSettings) PianoColors.Amber else PianoColors.TextSecondary,
+                        modifier = Modifier.size(19.dp))
+                }
+            }
+
+            // Row 2: 뷰모드 | 음색
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp)
+                    .padding(bottom = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                listOf(FallingMode.OFF to "📄 악보", FallingMode.DOWN to "⬇ 폭포", FallingMode.UP to "⬆ 역폭")
+                    .forEach { (mode, label) ->
+                        SmallChip(label, mode == fallingMode, PianoColors.Blue) { onFallingModeChange(mode) }
+                    }
+                Spacer(Modifier.weight(1f))
+                SoundMode.values().forEach { sm ->
+                    val sel = sm == soundMode
+                    val bgMod = if (sel)
+                        Modifier.background(Brush.verticalGradient(listOf(PianoColors.Violet, Color(0xFF6D28D9))), RoundedCornerShape(5.dp))
+                    else
+                        Modifier.background(Color(0xFF181B28), RoundedCornerShape(5.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(5.dp))
+                            .then(bgMod)
+                            .border(0.5.dp, if (sel) PianoColors.Violet else Color(0xFF282B3E), RoundedCornerShape(5.dp))
+                            .clickable { onSoundModeChange(sm) }
+                            .padding(horizontal = 5.dp, vertical = 3.dp)
+                    ) { Text(sm.icon, fontSize = 12.sp) }
+                }
+            }
+
+            // 진행 바 (세로)
+            if (isPlaying && totalSteps > 0 && playMode != PlayMode.FREE) {
+                val progress = if (totalSteps > 1) stepIndex.toFloat() / (totalSteps - 1) else 0f
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier.fillMaxWidth().height(3.dp),
                         color = when (playMode) {
                             PlayMode.AUTO -> PianoColors.Blue
                             PlayMode.INTERACTIVE -> PianoColors.Emerald
-                            else -> PianoColors.TextMuted
-                        }
+                            PlayMode.PRACTICE -> Color(0xFF8B5CF6)
+                            else -> PianoColors.Amber
+                        },
+                        trackColor = Color(0xFF1A1D2A)
                     )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("$stepIndex / $totalSteps", fontSize = 9.sp, color = PianoColors.TextMuted)
+                        Text("${(progress * 100).toInt()}%", fontSize = 9.sp,
+                            color = when (playMode) {
+                                PlayMode.AUTO -> PianoColors.Blue
+                                PlayMode.INTERACTIVE -> PianoColors.Emerald
+                                PlayMode.PRACTICE -> Color(0xFF8B5CF6)
+                                else -> PianoColors.TextMuted
+                            })
+                    }
                 }
+            } else {
+                Divider(color = Color(0xFF181B28), thickness = 1.dp)
             }
-        } else {
-            Divider(color = Color(0xFF181B28), thickness = 1.dp)
-        }
 
-        // ── 설정 패널 ─────────────────────────────────────────
-        if (showSettings) {
-            SettingsPanel(volume, tempoMultiplier, showNoteNames, showNextHint,
-                onVolumeChange, onTempoChange, onToggleNoteNames, onToggleNextHint)
+            // 설정 패널
+            if (showSettings) {
+                SettingsPanel(volume, tempoMultiplier, showNoteNames, showNextHint,
+                    onVolumeChange, onTempoChange, onToggleNoteNames, onToggleNextHint)
+            }
         }
     }
 }
@@ -221,6 +323,7 @@ private fun ModeToggleBtn(
     isPlaying: Boolean,
     enabled: Boolean,
     activeColor: Color,
+    compact: Boolean = false,
     onClick: () -> Unit
 ) {
     val bgBrush = when {
@@ -234,26 +337,27 @@ private fun ModeToggleBtn(
         else      -> Color(0xFF282B3E)
     }
     val textColor = when {
-        !enabled  -> PianoColors.TextMuted.copy(alpha = 0.4f)
-        isActive  -> Color.White
-        else      -> PianoColors.TextSecondary
+        !enabled -> PianoColors.TextMuted.copy(alpha = 0.4f)
+        isActive -> Color.White
+        else     -> PianoColors.TextSecondary
     }
+    val hPad = if (compact) 5.dp else 8.dp
+    val vPad = if (compact) 3.dp else 6.dp
+    val iconSp = if (compact) 10.sp else 11.sp
+    val labelSp = if (compact) 9.sp else 10.sp
 
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(7.dp))
             .background(bgBrush)
-            .border(1.dp, borderColor, RoundedCornerShape(8.dp))
+            .border(1.dp, borderColor, RoundedCornerShape(7.dp))
             .then(if (enabled) Modifier.clickable { onClick() } else Modifier)
-            .padding(horizontal = 8.dp, vertical = 6.dp),
+            .padding(horizontal = hPad, vertical = vPad),
         contentAlignment = Alignment.Center
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(3.dp)
-        ) {
-            Text(icon, fontSize = 11.sp, color = textColor)
-            Text(label, fontSize = 10.sp, fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal, color = textColor)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+            if (icon.isNotEmpty()) Text(icon, fontSize = iconSp, color = textColor)
+            Text(label, fontSize = labelSp, fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal, color = textColor)
         }
     }
 }
@@ -266,7 +370,7 @@ private fun SmallChip(label: String, selected: Boolean, activeColor: Color, onCl
             .background(if (selected) activeColor.copy(alpha = 0.25f) else Color(0xFF181B28))
             .border(0.5.dp, if (selected) activeColor else Color(0xFF282B3E), RoundedCornerShape(5.dp))
             .clickable { onClick() }
-            .padding(horizontal = 7.dp, vertical = 3.dp)
+            .padding(horizontal = 6.dp, vertical = 3.dp)
     ) {
         Text(label, fontSize = 9.sp, color = if (selected) activeColor else PianoColors.TextSecondary)
     }

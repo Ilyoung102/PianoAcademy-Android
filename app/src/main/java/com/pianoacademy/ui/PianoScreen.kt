@@ -44,6 +44,7 @@ fun PianoScreen(
                 showNextHint = state.showNextHint,
                 stepIndex = state.stepIndex,
                 totalSteps = state.selectedSong?.steps?.size ?: 0,
+                isLandscape = state.isLandscape,
                 onSongPickerOpen = { vm.toggleSongPicker() },
                 onModeButtonClick = { vm.handleModeButtonClick(it) },
                 onFallingModeChange = { vm.setFallingMode(it) },
@@ -59,9 +60,13 @@ fun PianoScreen(
 
             PianoKeyboard(
                 activeKeys = state.activeKeys,
-                highlightKeys = if (state.showNextHint) state.highlightKeys else emptySet(),
-                wrongKeys = state.wrongKeys,
-                correctKeys = state.correctKeys,
+                highlightKeys = when {
+                    state.playMode == PlayMode.PRACTICE -> emptySet()
+                    state.showNextHint -> state.highlightKeys
+                    else -> emptySet()
+                },
+                wrongKeys = if (state.playMode == PlayMode.PRACTICE) emptySet() else state.wrongKeys,
+                correctKeys = if (state.playMode == PlayMode.PRACTICE) emptySet() else state.correctKeys,
                 showNoteNames = state.showNoteNames,
                 isLandscape = state.isLandscape,
                 onNoteOn = { vm.pressKey(it) },
@@ -81,6 +86,7 @@ fun PianoScreen(
                         when (state.playMode) {
                             PlayMode.AUTO        -> vm.startAutoPlay(song)
                             PlayMode.INTERACTIVE -> vm.startInteractive(song)
+                            PlayMode.PRACTICE    -> vm.startInteractive(song, PlayMode.PRACTICE)
                             PlayMode.FREE        -> {}
                         }
                     }
@@ -102,6 +108,7 @@ fun PianoScreen(
                 when (state.playMode) {
                     PlayMode.AUTO        -> vm.startAutoPlay(song)
                     PlayMode.INTERACTIVE -> vm.startInteractive(song)
+                    PlayMode.PRACTICE    -> vm.startInteractive(song, PlayMode.PRACTICE)
                     PlayMode.FREE        -> {}
                 }
             },
