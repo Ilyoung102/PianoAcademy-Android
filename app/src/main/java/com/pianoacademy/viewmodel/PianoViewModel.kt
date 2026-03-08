@@ -1,6 +1,7 @@
 package com.pianoacademy.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.pianoacademy.audio.PianoSoundEngine
 import com.pianoacademy.audio.SoundMode
@@ -43,9 +44,9 @@ data class GameResult(
     val prevBest: Int?
 )
 
-class PianoViewModel : ViewModel() {
+class PianoViewModel(app: Application) : AndroidViewModel(app) {
 
-    private val soundEngine = PianoSoundEngine()
+    private val soundEngine = PianoSoundEngine(app.applicationContext)
     private val _uiState = MutableStateFlow(PianoUiState())
     val uiState: StateFlow<PianoUiState> = _uiState.asStateFlow()
 
