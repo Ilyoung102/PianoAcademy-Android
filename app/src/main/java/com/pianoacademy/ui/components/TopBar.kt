@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
+import com.pianoacademy.BuildConfig
 import com.pianoacademy.audio.SoundMode
 import com.pianoacademy.data.LEVEL_CONFIG
 import com.pianoacademy.data.Song
@@ -142,6 +143,9 @@ fun TopBar(
                     ) { Text(sm.icon, fontSize = 11.sp) }
                 }
 
+                // 버전
+                Text("v${BuildConfig.VERSION_NAME}", fontSize = 7.sp, color = Color(0xFF3A3E55))
+
                 // 설정
                 Box(
                     modifier = Modifier
@@ -227,6 +231,9 @@ fun TopBar(
                     isActive = playMode == PlayMode.PRACTICE, isPlaying = playMode == PlayMode.PRACTICE && isPlaying,
                     enabled = canPlay, activeColor = Color(0xFF8B5CF6)
                 ) { onModeButtonClick(PlayMode.PRACTICE) }
+
+                // 버전
+                Text("v${BuildConfig.VERSION_NAME}", fontSize = 8.sp, color = Color(0xFF3A3E55))
 
                 // 설정
                 Box(
