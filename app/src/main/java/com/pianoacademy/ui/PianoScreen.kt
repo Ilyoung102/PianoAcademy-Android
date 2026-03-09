@@ -136,7 +136,10 @@ private fun ScoreArea(state: PianoUiState, modifier: Modifier = Modifier) {
     when (state.fallingMode) {
         FallingMode.OFF -> SheetMusicView(
             song = song, stepIndex = state.stepIndex,
-            playMode = state.playMode, modifier = modifier
+            playMode = state.playMode,
+            isPlaying = state.isPlaying,
+            tempoMultiplier = state.tempoMultiplier,
+            modifier = modifier
         )
         FallingMode.DOWN, FallingMode.UP -> FallingNotesView(
             song = song, stepIndex = state.stepIndex,

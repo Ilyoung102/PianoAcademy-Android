@@ -61,102 +61,104 @@ fun TopBar(
             .background(Brush.verticalGradient(listOf(Color(0xFF080A10), Color(0xFF0E1018))))
     ) {
         if (isLandscape) {
-            // ── 가로모드: 한 줄 ────────────────────────────────────────
+            // ── 가로모드: 한 줄 (곡선택 + 악보/폭포 + 모드 + 음색 + 설정) ──
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .statusBarsPadding()
-                    .padding(horizontal = 6.dp, vertical = 3.dp),
+                    .padding(horizontal = 5.dp, vertical = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                horizontalArrangement = Arrangement.spacedBy(3.dp)
             ) {
-                // 곡 선택 (좁게)
+                // ① 곡 선택 (좁게, 최대 130dp)
                 Row(
                     modifier = Modifier
-                        .weight(0.45f)
+                        .widthIn(max = 130.dp)
                         .clip(RoundedCornerShape(6.dp))
                         .background(Color(0xFF181B28))
                         .border(1.dp, Color(0xFF282B3E), RoundedCornerShape(6.dp))
                         .clickable { onSongPickerOpen() }
-                        .padding(horizontal = 6.dp, vertical = 4.dp),
+                        .padding(horizontal = 5.dp, vertical = 3.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
-                    Text(levelCfg?.icon ?: "🎵", fontSize = 11.sp)
+                    Text(levelCfg?.icon ?: "🎵", fontSize = 10.sp)
                     Text(
-                        selectedSong?.title ?: "곡 선택 ▾",
-                        fontSize = 10.sp,
+                        selectedSong?.title ?: "곡 선택",
+                        fontSize = 9.sp,
                         fontWeight = if (selectedSong != null) FontWeight.SemiBold else FontWeight.Normal,
                         color = if (selectedSong != null) PianoColors.TextPrimary else PianoColors.TextMuted,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
+                        maxLines = 1, overflow = TextOverflow.Ellipsis
                     )
                 }
 
-                // 모드 버튼 4개 (compact)
-                ModeToggleBtn("자유", "🎸", playMode == PlayMode.FREE, false, true, PianoColors.Amber, compact = true) { onModeButtonClick(PlayMode.FREE) }
-                ModeToggleBtn(
-                    label = if (playMode == PlayMode.AUTO && isPlaying) "■" else "재생",
-                    icon = if (playMode == PlayMode.AUTO && isPlaying) "" else "▶",
-                    isActive = playMode == PlayMode.AUTO,
-                    isPlaying = playMode == PlayMode.AUTO && isPlaying,
-                    enabled = canPlay, activeColor = PianoColors.Blue, compact = true
-                ) { onModeButtonClick(PlayMode.AUTO) }
-                ModeToggleBtn(
-                    label = if (playMode == PlayMode.INTERACTIVE && isPlaying) "■" else "따라",
-                    icon = if (playMode == PlayMode.INTERACTIVE && isPlaying) "" else "✋",
-                    isActive = playMode == PlayMode.INTERACTIVE,
-                    isPlaying = playMode == PlayMode.INTERACTIVE && isPlaying,
-                    enabled = canPlay, activeColor = PianoColors.Emerald, compact = true
-                ) { onModeButtonClick(PlayMode.INTERACTIVE) }
-                ModeToggleBtn(
-                    label = if (playMode == PlayMode.PRACTICE && isPlaying) "■" else "혼자",
-                    icon = if (playMode == PlayMode.PRACTICE && isPlaying) "" else "🎓",
-                    isActive = playMode == PlayMode.PRACTICE,
-                    isPlaying = playMode == PlayMode.PRACTICE && isPlaying,
-                    enabled = canPlay, activeColor = Color(0xFF8B5CF6), compact = true
-                ) { onModeButtonClick(PlayMode.PRACTICE) }
-
-                // 구분선
-                Box(modifier = Modifier.width(1.dp).height(18.dp).background(Color(0xFF282B3E)))
-
-                // 뷰 모드 칩
+                // ② 뷰 모드 칩 (악보/폭↓/폭↑) — 곡 선택 바로 옆
                 listOf(FallingMode.OFF to "악보", FallingMode.DOWN to "폭↓", FallingMode.UP to "폭↑")
                     .forEach { (mode, label) ->
                         SmallChip(label, mode == fallingMode, PianoColors.Blue) { onFallingModeChange(mode) }
                     }
 
-                // 음색 칩 (아이콘만)
+                // 구분선
+                Box(modifier = Modifier.width(1.dp).height(16.dp).background(Color(0xFF282B3E)))
+
+                // ③ 모드 버튼 (아이콘만, label 없음 — 공간 절약)
+                LandscapeModeBtn("🎸", playMode == PlayMode.FREE, false, true, PianoColors.Amber) { onModeButtonClick(PlayMode.FREE) }
+                LandscapeModeBtn(
+                    icon = if (playMode == PlayMode.AUTO && isPlaying) "■" else "▶",
+                    isActive = playMode == PlayMode.AUTO,
+                    isPlaying = playMode == PlayMode.AUTO && isPlaying,
+                    enabled = canPlay, activeColor = PianoColors.Blue
+                ) { onModeButtonClick(PlayMode.AUTO) }
+                LandscapeModeBtn(
+                    icon = if (playMode == PlayMode.INTERACTIVE && isPlaying) "■" else "✋",
+                    isActive = playMode == PlayMode.INTERACTIVE,
+                    isPlaying = playMode == PlayMode.INTERACTIVE && isPlaying,
+                    enabled = canPlay, activeColor = PianoColors.Emerald
+                ) { onModeButtonClick(PlayMode.INTERACTIVE) }
+                LandscapeModeBtn(
+                    icon = if (playMode == PlayMode.PRACTICE && isPlaying) "■" else "🎓",
+                    isActive = playMode == PlayMode.PRACTICE,
+                    isPlaying = playMode == PlayMode.PRACTICE && isPlaying,
+                    enabled = canPlay, activeColor = Color(0xFF8B5CF6)
+                ) { onModeButtonClick(PlayMode.PRACTICE) }
+
+                // 구분선
+                Box(modifier = Modifier.width(1.dp).height(16.dp).background(Color(0xFF282B3E)))
+
+                // ④ 음색 아이콘
                 SoundMode.values().forEach { sm ->
                     val sel = sm == soundMode
-                    val bgMod = if (sel)
-                        Modifier.background(Brush.verticalGradient(listOf(PianoColors.Violet, Color(0xFF6D28D9))), RoundedCornerShape(4.dp))
-                    else
-                        Modifier.background(Color(0xFF181B28), RoundedCornerShape(4.dp))
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(4.dp))
-                            .then(bgMod)
+                            .background(
+                                if (sel) Brush.verticalGradient(listOf(PianoColors.Violet, Color(0xFF6D28D9)))
+                                else Brush.verticalGradient(listOf(Color(0xFF181B28), Color(0xFF181B28))),
+                                RoundedCornerShape(4.dp)
+                            )
                             .border(0.5.dp, if (sel) PianoColors.Violet else Color(0xFF282B3E), RoundedCornerShape(4.dp))
                             .clickable { onSoundModeChange(sm) }
                             .padding(horizontal = 4.dp, vertical = 2.dp)
                     ) { Text(sm.icon, fontSize = 11.sp) }
                 }
 
+                // ⑤ Spacer — 남은 공간 채워서 설정 아이콘을 오른쪽 끝으로
+                Spacer(modifier = Modifier.weight(1f))
+
                 // 버전
                 Text("v${BuildConfig.VERSION_NAME}", fontSize = 7.sp, color = Color(0xFF3A3E55))
 
-                // 설정
+                // ⑥ 설정 아이콘 (항상 오른쪽에 노출)
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(5.dp))
                         .background(if (showSettings) PianoColors.Amber.copy(alpha = 0.2f) else Color.Transparent)
                         .clickable { onToggleSettings() }
-                        .padding(4.dp)
+                        .padding(5.dp)
                 ) {
                     Icon(Icons.Default.Settings, "설정",
                         tint = if (showSettings) PianoColors.Amber else PianoColors.TextSecondary,
-                        modifier = Modifier.size(16.dp))
+                        modifier = Modifier.size(17.dp))
                 }
             }
 
@@ -368,6 +370,38 @@ private fun ModeToggleBtn(
             if (icon.isNotEmpty()) Text(icon, fontSize = iconSp, color = textColor)
             Text(label, fontSize = labelSp, fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal, color = textColor)
         }
+    }
+}
+
+// 가로모드 전용 — 아이콘만 있는 초소형 모드 버튼
+@Composable
+private fun LandscapeModeBtn(
+    icon: String,
+    isActive: Boolean,
+    isPlaying: Boolean,
+    enabled: Boolean,
+    activeColor: Color,
+    onClick: () -> Unit
+) {
+    val bgBrush = when {
+        isPlaying -> Brush.verticalGradient(listOf(activeColor, activeColor.copy(alpha = 0.7f)))
+        isActive  -> Brush.verticalGradient(listOf(activeColor.copy(0.45f), activeColor.copy(0.25f)))
+        else      -> Brush.verticalGradient(listOf(Color(0xFF1C1F2E), Color(0xFF181B28)))
+    }
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(bgBrush)
+            .border(1.dp, if (isActive) activeColor.copy(0.6f) else Color(0xFF282B3E), RoundedCornerShape(6.dp))
+            .then(if (enabled) Modifier.clickable { onClick() } else Modifier)
+            .padding(horizontal = 6.dp, vertical = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            icon, fontSize = 12.sp,
+            color = if (!enabled) PianoColors.TextMuted.copy(0.4f)
+                    else if (isActive) Color.White else PianoColors.TextSecondary
+        )
     }
 }
 
