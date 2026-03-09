@@ -70,10 +70,10 @@ fun TopBar(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                // 곡 선택 (절반 크기)
+                // 곡 선택 (좁게)
                 Row(
                     modifier = Modifier
-                        .weight(0.8f)
+                        .weight(0.45f)
                         .clip(RoundedCornerShape(6.dp))
                         .background(Color(0xFF181B28))
                         .border(1.dp, Color(0xFF282B3E), RoundedCornerShape(6.dp))
@@ -315,8 +315,10 @@ fun TopBar(
 
             // 설정 패널
             if (showSettings) {
-                SettingsPanel(volume, tempoMultiplier, showNoteNames, showNextHint,
-                    onVolumeChange, onTempoChange, onToggleNoteNames, onToggleNextHint)
+                SettingsPanel(
+                    volume, tempoMultiplier, showNoteNames, showNextHint, soundMode,
+                    onVolumeChange, onTempoChange, onToggleNoteNames, onToggleNextHint, onSoundModeChange
+                )
             }
         }
     }
@@ -386,20 +388,56 @@ private fun SmallChip(label: String, selected: Boolean, activeColor: Color, onCl
 @Composable
 private fun SettingsPanel(
     volume: Float, tempo: Float, showNoteNames: Boolean, showNextHint: Boolean,
+    soundMode: SoundMode,
     onVolumeChange: (Float) -> Unit, onTempoChange: (Float) -> Unit,
-    onToggleNoteNames: () -> Unit, onToggleNextHint: () -> Unit
+    onToggleNoteNames: () -> Unit, onToggleNextHint: () -> Unit,
+    onSoundModeChange: (SoundMode) -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().background(Color(0xFF0C0E18))
             .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
+        // ─ 음색 번호 선택 ─
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            Text("🎹 음색", fontSize = 10.sp, color = PianoColors.TextSecondary, modifier = Modifier.width(52.dp))
+            SoundMode.values().forEachIndexed { i, sm ->
+                val sel = sm == soundMode
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(
+                            if (sel) Brush.verticalGradient(listOf(PianoColors.Violet, Color(0xFF6D28D9)))
+                            else Brush.verticalGradient(listOf(Color(0xFF1C1F2E), Color(0xFF181B28)))
+                        )
+                        .border(1.dp, if (sel) PianoColors.Violet else Color(0xFF282B3E), RoundedCornerShape(6.dp))
+                        .clickable { onSoundModeChange(sm) }
+                        .padding(horizontal = 7.dp, vertical = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("${i + 1}번", fontSize = 8.sp,
+                            color = if (sel) Color.White.copy(alpha = 0.7f) else PianoColors.TextMuted)
+                        Text(sm.icon, fontSize = 13.sp)
+                        Text(sm.label, fontSize = 8.sp,
+                            color = if (sel) Color.White else PianoColors.TextSecondary,
+                            fontWeight = if (sel) FontWeight.Bold else FontWeight.Normal)
+                    }
+                }
+            }
+        }
+
+        // ─ 볼륨 ─
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("🔊 볼륨", fontSize = 10.sp, color = PianoColors.TextSecondary, modifier = Modifier.width(52.dp))
             Slider(value = volume, onValueChange = onVolumeChange, valueRange = 0f..1f, modifier = Modifier.weight(1f),
                 colors = SliderDefaults.colors(thumbColor = PianoColors.Amber, activeTrackColor = PianoColors.Amber, inactiveTrackColor = Color(0xFF2A2D3E)))
             Text("${(volume * 100).toInt()}%", fontSize = 10.sp, color = PianoColors.TextSecondary, modifier = Modifier.width(30.dp))
         }
+        // ─ 템포 ─
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("🎵 템포", fontSize = 10.sp, color = PianoColors.TextSecondary, modifier = Modifier.width(52.dp))
             Slider(value = tempo, onValueChange = onTempoChange, valueRange = 0.5f..2.0f, modifier = Modifier.weight(1f),

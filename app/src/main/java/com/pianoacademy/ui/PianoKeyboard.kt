@@ -268,5 +268,27 @@ fun PianoKeyboard(
                     )
             )
         }
+
+        // ── 옥타브 마커 (C3, C4, C5) ─────────────────────────
+        listOf("C3", "C4", "C5").forEach { cNote ->
+            val cKey = whites.firstOrNull { it.note == cNote }
+            if (cKey != null && keyboardWidthPx > 0f) {
+                val xDp = with(LocalDensity.current) { (cKey.xFraction * keyboardWidthPx).toDp() }
+                Box(
+                    modifier = Modifier
+                        .offset(x = xDp, y = 2.dp)
+                        .clip(RoundedCornerShape(bottomEnd = 4.dp))
+                        .background(Color(0xFF1A2040).copy(alpha = 0.75f))
+                        .padding(horizontal = 3.dp, vertical = 1.dp)
+                ) {
+                    Text(
+                        text = cNote,
+                        fontSize = 7.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF7B8CC4)
+                    )
+                }
+            }
+        }
     }
 }

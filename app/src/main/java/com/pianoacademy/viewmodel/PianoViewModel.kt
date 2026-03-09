@@ -133,10 +133,10 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
                 step.keys.forEach { note ->
                     NOTE_MAP[note]?.let { nk -> soundEngine.playNote(note, nk.frequency) }
                 }
-                delay(durationMs.coerceAtLeast(80))
-                _uiState.update { it.copy(activeKeys = emptySet()) }
-                delay(30)
+                delay(durationMs.coerceAtLeast(60))
+                // 다음 음표로 바로 이어짐 (갭 없음)
             }
+            _uiState.update { it.copy(activeKeys = emptySet()) }
             finishAutoPlay()
         }
     }
