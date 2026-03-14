@@ -11,6 +11,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pianoacademy.ui.PianoScreen
 import com.pianoacademy.ui.theme.PianoAcademyTheme
@@ -51,7 +52,8 @@ class MainActivity : ComponentActivity() {
             PianoAcademyTheme {
                 val vm: PianoViewModel = viewModel()
 
-                val config = resources.configuration
+                // LocalConfiguration.current: configChanges로 Activity 재생성 없을 때도 반응
+                val config = LocalConfiguration.current
                 LaunchedEffect(config.orientation) {
                     val isLandscape = config.orientation ==
                         android.content.res.Configuration.ORIENTATION_LANDSCAPE
