@@ -73,7 +73,7 @@ fun PianoScreen(
                 onNoteOff = { vm.releaseKey(it) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(if (state.isLandscape) 150.dp else 195.dp)
+                    .height(if (state.isLandscape) 120.dp else 195.dp)
             )
         }
 
@@ -139,6 +139,7 @@ private fun ScoreArea(state: PianoUiState, modifier: Modifier = Modifier) {
             playMode = state.playMode,
             isPlaying = state.isPlaying,
             tempoMultiplier = state.tempoMultiplier,
+            isLandscape = state.isLandscape,
             modifier = modifier
         )
         FallingMode.DOWN, FallingMode.UP -> FallingNotesView(

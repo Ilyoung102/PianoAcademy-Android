@@ -18,13 +18,14 @@ import com.pianoacademy.data.*
 import com.pianoacademy.ui.theme.PianoColors
 import com.pianoacademy.viewmodel.PlayMode
 
-// 2옥타브 피아노롤에 표시할 음 목록 (위=높은음, 아래=낮은음)
-// C3~B4 (24음, 2옥타브)
+// 3옥타브 피아노롤 (C3~B5, 36음 — 위=높은음, 아래=낮은음)
 private val ROLL_NOTES = listOf(
+    "B5","A#5","A5","G#5","G5","F#5","F5","E5","D#5","D5","C#5","C5",
     "B4","A#4","A4","G#4","G4","F#4","F4","E4","D#4","D4","C#4","C4",
     "B3","A#3","A3","G#3","G3","F#3","F3","E3","D#3","D3","C#3","C3"
 )
 private val BLACK_NOTES = setOf(
+    "A#5","G#5","F#5","D#5","C#5",
     "A#4","G#4","F#4","D#4","C#4",
     "A#3","G#3","F#3","D#3","C#3"
 )
@@ -36,14 +37,13 @@ fun SheetMusicView(
     playMode: PlayMode,
     isPlaying: Boolean = false,
     tempoMultiplier: Float = 1.0f,
+    isLandscape: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    // 현재 스텝까지 누적 beat 수
     val targetBeat = remember(song, stepIndex) {
         song.steps.take(stepIndex).sumOf { it.duration.toDouble() }.toFloat()
     }
 
-    // 현재 스텝 duration → 애니메이션 시간을 note 길이에 맞춤
     val animDurationMs = remember(song, stepIndex, tempoMultiplier) {
         if (!isPlaying) 220
         else {
@@ -52,7 +52,6 @@ fun SheetMusicView(
         }
     }
 
-    // 부드러운 스크롤 애니메이션
     val animBeat by animateFloatAsState(
         targetValue = targetBeat,
         animationSpec = tween(durationMillis = animDurationMs, easing = LinearEasing),
@@ -64,20 +63,20 @@ fun SheetMusicView(
             .fillMaxSize()
             .background(Color(0xFF0F111A))
     ) {
-        val BW   = 110f          // px per beat (가로 비율)
+        val BW   = 110f
         val vw   = size.width
         val vh   = size.height
 
         val scrollX = vw / 2f - animBeat * BW
 
         // ══════════════════════════════════════════════════════
-        // 상단 40%: 오선 악보
+        // 상단: 오선 악보 (가로=20%, 세로=38%)
         // ══════════════════════════════════════════════════════
-        val staffH  = vh * 0.40f
-        val SS      = 8.5f                    // 오선 간격
+        val staffRatio = if (isLandscape) 0.20f else 0.38f
+        val staffH  = vh * staffRatio
+        val SS      = 8.5f
         val centerY = staffH * 0.52f
 
-        // 배경 수평선
         for (li in -5..5) {
             drawLine(
                 color = Color(0xFF191C28),
@@ -86,7 +85,6 @@ fun SheetMusicView(
                 strokeWidth = 0.6f
             )
         }
-        // 5선 (오선보)
         for (i in -2..2) {
             drawLine(
                 color = Color(0xFF353A58),
@@ -96,12 +94,11 @@ fun SheetMusicView(
             )
         }
 
-        // 음표 그리기
         var xAcc = 0f
         song.steps.forEachIndexed { idx, step ->
             val noteW   = step.duration * BW
             val sx      = xAcc + scrollX
-            val cx      = sx + noteW / 2f   // note head center x
+            val cx      = sx + noteW / 2f
             xAcc += noteW
 
             if (cx < -noteW || cx > vw + noteW) return@forEachIndexed
@@ -119,12 +116,10 @@ fun SheetMusicView(
                 val offset = NOTE_OFFSETS[note] ?: 0
                 val noteY  = centerY - offset * SS
 
-                // 가온선 (C4)
                 if (note == "C4") {
                     drawLine(color = noteColor.copy(alpha = 0.65f),
                         start = Offset(cx - 12f, noteY), end = Offset(cx + 12f, noteY), strokeWidth = 1.4f)
                 }
-                // 가온 아래 C3 보조선
                 if (note == "C3") {
                     for (li in 0..2) {
                         drawLine(color = noteColor.copy(alpha = 0.5f),
@@ -132,13 +127,11 @@ fun SheetMusicView(
                             end   = Offset(cx + 12f, noteY + li * SS), strokeWidth = 1.2f)
                     }
                 }
-                // 높은음 (C5, B4 위) 보조선
                 if (note == "C5") {
                     drawLine(color = noteColor.copy(alpha = 0.65f),
                         start = Offset(cx - 12f, noteY), end = Offset(cx + 12f, noteY), strokeWidth = 1.4f)
                 }
 
-                // 샤프 기호
                 if (note.contains("#")) {
                     drawLine(color = noteColor, start = Offset(cx - 18f, noteY - 9f),
                         end = Offset(cx - 18f, noteY + 6f), strokeWidth = 1.5f)
@@ -151,7 +144,6 @@ fun SheetMusicView(
                 val isWhole = step.duration >= 4f
                 val isHalf  = step.duration >= 2f && step.duration < 4f
 
-                // 음표 머리
                 if (isWhole || isHalf) {
                     drawOval(color = noteColor, topLeft = Offset(cx - 7f, noteY - 5f), size = Size(14f, 10f))
                     drawOval(color = Color(0xFF0F111A), topLeft = Offset(cx - 4f, noteY - 3f), size = Size(8f, 6f))
@@ -159,7 +151,6 @@ fun SheetMusicView(
                     drawOval(color = noteColor, topLeft = Offset(cx - 7f, noteY - 5f), size = Size(14f, 10f))
                 }
 
-                // 기둥
                 if (!isWhole) {
                     val stemUp = offset <= 0
                     if (stemUp) {
@@ -185,28 +176,25 @@ fun SheetMusicView(
             }
         }
 
-        // 오선 영역 구분선
         drawLine(color = Color(0xFF1E2235),
             start = Offset(0f, staffH), end = Offset(vw, staffH), strokeWidth = 1f)
 
         // ══════════════════════════════════════════════════════
-        // 하단 60%: 2옥타브 피아노롤 (C3~B4)
+        // 하단: 3옥타브 피아노롤 (C3~B5, 36음)
         // ══════════════════════════════════════════════════════
         val rollTop = staffH + 1f
         val rollH   = vh - rollTop
-        val rowH    = rollH / ROLL_NOTES.size   // 각 음 행 높이
+        val rowH    = rollH / ROLL_NOTES.size
 
-        // 행 배경 그리기
         ROLL_NOTES.forEachIndexed { i, note ->
             val y       = rollTop + i * rowH
             val isBlack = note in BLACK_NOTES
             drawRect(
-                color     = if (isBlack) Color(0xFF0A0C15) else Color(0xFF111420),
-                topLeft   = Offset(0f, y),
-                size      = Size(vw, rowH)
+                color   = if (isBlack) Color(0xFF0A0C15) else Color(0xFF111420),
+                topLeft = Offset(0f, y),
+                size    = Size(vw, rowH)
             )
-            // C 음에 구분선 (옥타브 경계)
-            if (note == "C4" || note == "C3") {
+            if (note == "C5" || note == "C4" || note == "C3") {
                 drawLine(
                     color = Color(0xFF2A3060),
                     start = Offset(0f, y),
@@ -216,15 +204,14 @@ fun SheetMusicView(
             }
         }
 
-        // 음 이름 라벨 (C3, C4, C5)
-        val labelNotes = setOf("C4", "C3")
+        // 옥타브 레이블 (C5, C4, C3)
         ROLL_NOTES.forEachIndexed { i, note ->
-            if (note in labelNotes) {
+            if (note == "C5" || note == "C4" || note == "C3") {
                 val y = rollTop + i * rowH
                 drawIntoCanvas { canvas ->
                     val paint = android.graphics.Paint().apply {
                         color     = 0xFF3A4580.toInt()
-                        textSize  = (rowH * 0.85f).coerceIn(7f, 11f)
+                        textSize  = (rowH * 0.85f).coerceIn(6f, 11f)
                         isAntiAlias = true
                     }
                     canvas.nativeCanvas.drawText(note, 3f, y + rowH * 0.78f, paint)
@@ -232,7 +219,7 @@ fun SheetMusicView(
             }
         }
 
-        // 음표 블록 그리기
+        // 음표 블록
         var bx = 0f
         song.steps.forEachIndexed { idx, step ->
             val noteW   = step.duration * BW
@@ -246,7 +233,7 @@ fun SheetMusicView(
 
             step.keys.forEach { note ->
                 val rowIdx = ROLL_NOTES.indexOf(note)
-                if (rowIdx < 0) return@forEach   // 범위 밖 음(C5↑)은 오선 영역에서만 표시
+                if (rowIdx < 0) return@forEach
 
                 val color = when {
                     isPast    -> Color(0xFF252840).copy(alpha = 0.7f)
@@ -260,7 +247,6 @@ fun SheetMusicView(
                     size        = Size((noteW - 3f).coerceAtLeast(5f), rowH - 3f),
                     cornerRadius = CornerRadius(3f, 3f)
                 )
-                // 현재 음표 밝은 상단 강조
                 if (isCurrent) {
                     drawRoundRect(
                         color       = color.copy(alpha = 1f),
@@ -272,9 +258,7 @@ fun SheetMusicView(
             }
         }
 
-        // ══════════════════════════════════════════════════════
-        // 중앙 커서 라인 (전체 높이)
-        // ══════════════════════════════════════════════════════
+        // 커서 라인
         drawLine(color = PianoColors.Amber.copy(alpha = 0.15f),
             start = Offset(vw / 2f, 0f), end = Offset(vw / 2f, vh), strokeWidth = 18f)
         drawLine(color = PianoColors.Amber.copy(alpha = 0.55f),
