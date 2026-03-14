@@ -73,7 +73,7 @@ fun PianoScreen(
                 onNoteOff = { vm.releaseKey(it) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(if (state.isLandscape) 120.dp else 195.dp)
+                    .height(if (state.isLandscape) 144.dp else 195.dp)
             )
         }
 

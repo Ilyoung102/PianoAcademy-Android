@@ -71,19 +71,19 @@ fun TopBar(
                 tempoMultiplier <= 1.51f -> "×1½"
                 else                    -> "×2"
             }
-            // ── 가로모드: 한 줄 (음색 제거, 공간 최적화) ──────────────
+            // ── 가로모드: 한 줄 (공간 최적화, 설정 아이콘 항상 노출) ──
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .statusBarsPadding()
                     .padding(horizontal = 4.dp, vertical = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                horizontalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                // ① 곡 선택 (80dp 이하)
+                // ① 곡 선택 (65dp 이하로 축소)
                 Row(
                     modifier = Modifier
-                        .widthIn(max = 80.dp)
+                        .widthIn(max = 65.dp)
                         .clip(RoundedCornerShape(6.dp))
                         .background(Color(0xFF181B28))
                         .border(1.dp, Color(0xFF282B3E), RoundedCornerShape(6.dp))
@@ -172,9 +172,7 @@ fun TopBar(
 
                 Spacer(Modifier.weight(1f))
 
-                Text("v${BuildConfig.VERSION_NAME}", fontSize = 7.sp, color = Color(0xFF3A3E55))
-
-                // ⑥ 설정 아이콘 (항상 오른쪽 끝)
+                // ⑥ 설정 아이콘 (항상 오른쪽 끝, 버전 제거로 공간 확보)
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(5.dp))
@@ -428,11 +426,11 @@ private fun LandscapeModeBtn(
             .background(bgBrush)
             .border(1.dp, if (isActive) activeColor.copy(0.6f) else Color(0xFF282B3E), RoundedCornerShape(6.dp))
             .then(if (enabled) Modifier.clickable { onClick() } else Modifier)
-            .padding(horizontal = 6.dp, vertical = 4.dp),
+            .padding(horizontal = 5.dp, vertical = 3.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
-            icon, fontSize = 12.sp,
+            icon, fontSize = 11.sp,
             color = if (!enabled) PianoColors.TextMuted.copy(0.4f)
                     else if (isActive) Color.White else PianoColors.TextSecondary
         )

@@ -18,16 +18,15 @@ import com.pianoacademy.data.*
 import com.pianoacademy.ui.theme.PianoColors
 import com.pianoacademy.viewmodel.PlayMode
 
-// 3옥타브 피아노롤 (C3~B5, 36음 — 위=높은음, 아래=낮은음)
+// 2옥타브 피아노롤 (C4~B5, 24음 — 위=높은음, 아래=낮은음)
+// C5(높은도)~B5가 위쪽, C4~B4가 아래쪽 → 2옥타브 선명하게 표시
 private val ROLL_NOTES = listOf(
     "B5","A#5","A5","G#5","G5","F#5","F5","E5","D#5","D5","C#5","C5",
-    "B4","A#4","A4","G#4","G4","F#4","F4","E4","D#4","D4","C#4","C4",
-    "B3","A#3","A3","G#3","G3","F#3","F3","E3","D#3","D3","C#3","C3"
+    "B4","A#4","A4","G#4","G4","F#4","F4","E4","D#4","D4","C#4","C4"
 )
 private val BLACK_NOTES = setOf(
     "A#5","G#5","F#5","D#5","C#5",
-    "A#4","G#4","F#4","D#4","C#4",
-    "A#3","G#3","F#3","D#3","C#3"
+    "A#4","G#4","F#4","D#4","C#4"
 )
 
 @Composable
@@ -204,9 +203,9 @@ fun SheetMusicView(
             }
         }
 
-        // 옥타브 레이블 (C5, C4, C3)
+        // 옥타브 레이블 (C5, C4)
         ROLL_NOTES.forEachIndexed { i, note ->
-            if (note == "C5" || note == "C4" || note == "C3") {
+            if (note == "C5" || note == "C4") {
                 val y = rollTop + i * rowH
                 drawIntoCanvas { canvas ->
                     val paint = android.graphics.Paint().apply {
