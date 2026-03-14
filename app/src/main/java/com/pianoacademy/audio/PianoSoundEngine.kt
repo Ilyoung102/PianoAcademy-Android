@@ -29,51 +29,61 @@ enum class SoundMode(val label: String, val icon: String) {
 }
 
 /**
- * 피아노 사운드 엔진 v2 - Salamander Grand Piano 실제 녹음 기반
+ * PianoSoundEngine v3 — 웹 버전과 동일한 DSP 파라미터 적용
  *
- * ┌─────────────────────────────────────────────────────┐
- * │  Salamander Grand Piano (실제 Yamaha C5 녹음)       │
- * │  12개 base sample (minor 3rd 간격)                  │
- * │  + SoundPool rate 파라미터로 ±2반음 피치 시프팅     │
- * │  → 36음 전부 실제 녹음 기반으로 재생               │
- * ├─────────────────────────────────────────────────────┤
- * │  GRAND  : 실녹음 + 자연스러운 룸 리버브             │
- * │  SOFT   : 실녹음 + 부드럽게 (볼륨 살짝 낮춤)       │
- * │  ELECTRIC: 실녹음 + 밝은 EQ                        │
- * │  VIBRA  : 사인파 합성 + 트레몰로                   │
- * │  ORGAN  : 배음 합성 (Hammond 스타일)               │
- * └─────────────────────────────────────────────────────┘
+ *  웹 SOUND_MODES 파라미터 기준:
+ *  grand:   LPF 6500→1100Hz/1.8s, bass+8dB@300Hz, peak+3dB@1200Hz, reverb 18%/2.5s
+ *  soft:    LPF  780→ 210Hz/1.5s, bass+4dB@250Hz, peak+2dB@1200Hz, reverb 58%/3.5s
+ *  electric:BPF 2600→2000Hz/0.6s, bass+2dB@400Hz, peak+2dB@1200Hz, reverb  3%/0.5s
+ *  vibra/organ: AudioTrack 합성 (샘플 불필요)
  */
 class PianoSoundEngine(private val context: Context) {
 
     companion object {
         private const val TAG = "PianoSoundEngine"
-        private const val CACHE_VER = "sal_v2"
+        private const val CACHE_VER = "sal_v4"
         private const val SR = 44100
 
-        // 각 노트의 MIDI 번호 (C3=48 기준)
         private val NOTE_MIDI = mapOf(
-            "C3"  to 48,  "C#3" to 49,  "D3"  to 50,  "D#3" to 51,
-            "E3"  to 52,  "F3"  to 53,  "F#3" to 54,  "G3"  to 55,
-            "G#3" to 56,  "A3"  to 57,  "A#3" to 58,  "B3"  to 59,
-            "C4"  to 60,  "C#4" to 61,  "D4"  to 62,  "D#4" to 63,
-            "E4"  to 64,  "F4"  to 65,  "F#4" to 66,  "G4"  to 67,
-            "G#4" to 68,  "A4"  to 69,  "A#4" to 70,  "B4"  to 71,
-            "C5"  to 72,  "C#5" to 73,  "D5"  to 74,  "D#5" to 75,
-            "E5"  to 76,  "F5"  to 77,  "F#5" to 78,  "G5"  to 79,
-            "G#5" to 80,  "A5"  to 81,  "A#5" to 82,  "B5"  to 83
+            "C3"  to 48, "C#3" to 49, "D3"  to 50, "D#3" to 51,
+            "E3"  to 52, "F3"  to 53, "F#3" to 54, "G3"  to 55,
+            "G#3" to 56, "A3"  to 57, "A#3" to 58, "B3"  to 59,
+            "C4"  to 60, "C#4" to 61, "D4"  to 62, "D#4" to 63,
+            "E4"  to 64, "F4"  to 65, "F#4" to 66, "G4"  to 67,
+            "G#4" to 68, "A4"  to 69, "A#4" to 70, "B4"  to 71,
+            "C5"  to 72, "C#5" to 73, "D5"  to 74, "D#5" to 75,
+            "E5"  to 76, "F5"  to 77, "F#5" to 78, "G5"  to 79,
+            "G#5" to 80, "A5"  to 81, "A#5" to 82, "B5"  to 83
         )
 
-        // Salamander 베이스 샘플 (minor 3rd 간격 = 3반음)
-        // 파일명: C3.mp3, Ds3.mp3(D#3), Fs3.mp3(F#3), A3.mp3 ...
         private val BASES = listOf(
-            "C3"  to 48,  "Ds3" to 51,  "Fs3" to 54,  "A3"  to 57,
-            "C4"  to 60,  "Ds4" to 63,  "Fs4" to 66,  "A4"  to 69,
-            "C5"  to 72,  "Ds5" to 75,  "Fs5" to 78,  "A5"  to 81
+            "C3" to 48, "Ds3" to 51, "Fs3" to 54, "A3" to 57,
+            "C4" to 60, "Ds4" to 63, "Fs4" to 66, "A4" to 69,
+            "C5" to 72, "Ds5" to 75, "Fs5" to 78, "A5" to 81
         )
+
+        // 웹 버전 SOUND_MODES 파라미터
+        private val GRAND_PARAMS   = DspParams(lpStart=6500f, lpEnd=1100f, sweepSec=1.8f, bassDb=8f, bassHz=300f, peakDb=3f, peakHz=1200f, reverbWet=0.18f, rt60=2.5f, bandpass=false, bpQ=0f)
+        private val SOFT_PARAMS    = DspParams(lpStart=780f,  lpEnd=210f,  sweepSec=1.5f, bassDb=4f, bassHz=250f, peakDb=2f, peakHz=1200f, reverbWet=0.58f, rt60=3.5f, bandpass=false, bpQ=0f)
+        private val ELECTRIC_PARAMS= DspParams(lpStart=2600f, lpEnd=2000f, sweepSec=0.6f, bassDb=2f, bassHz=400f, peakDb=2f, peakHz=1200f, reverbWet=0.03f, rt60=0.5f, bandpass=true,  bpQ=2.2f)
+
+        private val SAMPLE_MODES = listOf(SoundMode.GRAND, SoundMode.SOFT, SoundMode.ELECTRIC)
     }
 
-    // 각 노트 → (베이스샘플명, 재생rate)
+    private data class DspParams(
+        val lpStart:    Float,
+        val lpEnd:      Float,
+        val sweepSec:   Float,
+        val bassDb:     Float,
+        val bassHz:     Float,
+        val peakDb:     Float,
+        val peakHz:     Float,
+        val reverbWet:  Float,
+        val rt60:       Float,
+        val bandpass:   Boolean,
+        val bpQ:        Float
+    )
+
     private data class NoteRef(val base: String, val rate: Float)
 
     private val noteRefs: Map<String, NoteRef> = NOTE_MIDI.mapValues { (_, midi) ->
@@ -81,9 +91,8 @@ class PianoSoundEngine(private val context: Context) {
         NoteRef(name, 2f.pow((midi - baseMidi) / 12f))
     }
 
-    // SoundPool: GRAND / SOFT / ELECTRIC 모드용
     private val soundPool = SoundPool.Builder()
-        .setMaxStreams(12)
+        .setMaxStreams(16)
         .setAudioAttributes(
             AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_MEDIA)
@@ -92,20 +101,26 @@ class PianoSoundEngine(private val context: Context) {
         )
         .build()
 
-    private val soundIds     = ConcurrentHashMap<String, Int>()
+    // 모드별 soundId 맵: mode -> (baseName -> poolId)
+    private val soundIdsByMode = mapOf(
+        SoundMode.GRAND    to ConcurrentHashMap<String, Int>(),
+        SoundMode.SOFT     to ConcurrentHashMap<String, Int>(),
+        SoundMode.ELECTRIC to ConcurrentHashMap<String, Int>()
+    )
     private val loadedSounds = ConcurrentHashMap.newKeySet<Int>()
     private val activePool   = ConcurrentHashMap<String, Int>()
     private val activeSynth  = ConcurrentHashMap<String, AudioTrack>()
 
+    // 로드 진행도: 총 BASES.size × SAMPLE_MODES.size
     private val _loadedCount = MutableStateFlow(0)
     val loadedCount: StateFlow<Int> = _loadedCount
-    val totalSamples: Int = BASES.size
+    val totalSamples: Int = BASES.size * SAMPLE_MODES.size
 
     private var _volume = 1.0f
     var soundMode = SoundMode.GRAND
 
-    private val scope    = CoroutineScope(Dispatchers.IO + SupervisorJob())
-    private val cacheDir = File(context.cacheDir, CACHE_VER).apply { mkdirs() }
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val rootCache = File(context.cacheDir, CACHE_VER).apply { mkdirs() }
 
     init {
         soundPool.setOnLoadCompleteListener { _, id, status ->
@@ -120,21 +135,32 @@ class PianoSoundEngine(private val context: Context) {
     // ── 샘플 로드 ──────────────────────────────────────────────
     private fun loadAllSamples() {
         scope.launch {
-            BASES.map { (name, _) ->
-                async {
-                    try {
-                        val wavFile = File(cacheDir, "$name.wav")
-                        if (!wavFile.exists() || wavFile.length() < 200) {
-                            val mono   = decodeAsset("piano_samples/$name.mp3") ?: return@async
-                            val stereo = processGrand(mono)
-                            writeWav(stereo, wavFile)
+            val jobs = BASES.flatMap { (name, _) ->
+                SAMPLE_MODES.map { mode ->
+                    async {
+                        val params = when (mode) {
+                            SoundMode.GRAND    -> GRAND_PARAMS
+                            SoundMode.SOFT     -> SOFT_PARAMS
+                            SoundMode.ELECTRIC -> ELECTRIC_PARAMS
+                            else               -> return@async
                         }
-                        soundIds[name] = soundPool.load(wavFile.absolutePath, 1)
-                    } catch (e: Exception) {
-                        Log.e(TAG, "load $name: $e")
+                        val dir = File(rootCache, mode.name.lowercase()).apply { mkdirs() }
+                        val wavFile = File(dir, "$name.wav")
+                        try {
+                            if (!wavFile.exists() || wavFile.length() < 200) {
+                                val mono = decodeAsset("piano_samples/$name.mp3") ?: return@async
+                                val stereo = processWithParams(mono, params)
+                                writeWav(stereo, wavFile)
+                            }
+                            val id = soundPool.load(wavFile.absolutePath, 1)
+                            soundIdsByMode[mode]!![name] = id
+                        } catch (e: Exception) {
+                            Log.e(TAG, "load $mode/$name: $e")
+                        }
                     }
                 }
-            }.awaitAll()
+            }
+            jobs.awaitAll()
         }
     }
 
@@ -205,7 +231,7 @@ class PianoSoundEngine(private val context: Context) {
 
             val floats = FloatArray(shorts.size) { shorts[it] / 32768f }
             val mono   = if (outCh == 1) floats
-                         else FloatArray(floats.size / 2) { i -> (floats[i * 2] + floats[i * 2 + 1]) * 0.5f }
+                         else FloatArray(floats.size / 2) { i -> (floats[i*2] + floats[i*2+1]) * 0.5f }
             if (outSR != SR) resample(mono, outSR, SR) else mono
 
         } catch (e: Exception) {
@@ -227,48 +253,127 @@ class PianoSoundEngine(private val context: Context) {
     }
 
     // ══════════════════════════════════════════════════════════
-    //  DSP: GRAND 처리 (실녹음을 최소한만 다듬기)
+    //  DSP 처리 — 웹 Web Audio API와 동일한 파라미터
     // ══════════════════════════════════════════════════════════
-    private fun processGrand(mono: FloatArray): FloatArray {
+    private fun processWithParams(mono: FloatArray, p: DspParams): FloatArray {
         val n = mono.size
 
-        // 1. 정규화 (피크 0.88)
+        // ─ 1. 정규화 ─────────────────────────────────────────
         val peak = mono.maxOf { abs(it) }.coerceAtLeast(1e-6f)
-        val norm = FloatArray(n) { mono[it] / peak * 0.88f }
+        val norm = FloatArray(n) { mono[it] / peak * 0.80f }
 
-        // 2. 12kHz 저역통과 (고주파 노이즈만 제거, 자연음 보존)
-        val lpf = FloatArray(n)
-        val a   = exp(-2f * PI.toFloat() * 12000f / SR)
-        var p   = 0f
-        for (i in norm.indices) { lpf[i] = (1f - a) * norm[i] + a * p; p = lpf[i] }
+        // ─ 2. 필터 스위프 ─────────────────────────────────────
+        //    web: f.frequency.exponentialRampToValueAtTime(lpEnd, t+sweepSec)
+        val filtered = if (p.bandpass) {
+            applyBandpassSweep(norm, p.lpStart, p.lpEnd, p.sweepSec, p.bpQ)
+        } else {
+            applyLpfSweep(norm, p.lpStart, p.lpEnd, p.sweepSec)
+        }
 
-        // 3. 짧은 룸 리버브 (자연스러운 공간감만, muddy 방지)
-        val tailLen = (SR * 0.7f).toInt()
+        // ─ 3. 저음 쉘프 부스트 (web: master lowshelf +8dB@300Hz) ─
+        //    y[n] = x[n] + (A-1)*lp[n]  (1-pole low shelf 근사)
+        val bassAmp = 10f.pow(p.bassDb / 20f)
+        val bassA   = exp(-2f * PI.toFloat() * p.bassHz / SR)
+        val bassBoosted = FloatArray(n)
+        var bsLp = 0f
+        for (i in filtered.indices) {
+            bsLp = (1f - bassA) * filtered[i] + bassA * bsLp
+            bassBoosted[i] = filtered[i] + (bassAmp - 1f) * bsLp
+        }
+
+        // ─ 4. 피킹 EQ (web: master peaking +3dB@1200Hz Q=1) ─
+        //    bandpass 성분 부스트: y = x + (A-1)*bp(x)
+        val peakAmp = 10f.pow(p.peakDb / 20f)
+        val bw      = p.peakHz / 1f   // Q=1 → BW = fc
+        val aLo     = exp(-2f * PI.toFloat() * (p.peakHz - bw * 0.5f).coerceAtLeast(1f) / SR)
+        val aHi     = exp(-2f * PI.toFloat() * (p.peakHz + bw * 0.5f) / SR)
+        val peaked  = FloatArray(n)
+        var pkLo = 0f; var pkHi = 0f
+        for (i in bassBoosted.indices) {
+            pkLo = (1f - aLo) * bassBoosted[i] + aLo * pkLo
+            pkHi = (1f - aHi) * bassBoosted[i] + aHi * pkHi
+            val bp = pkHi - pkLo
+            peaked[i] = bassBoosted[i] + (peakAmp - 1f) * bp
+        }
+
+        // ─ 5. Schroeder 리버브 ─────────────────────────────────
+        //    RT60에 맞춰 comb 피드백 계수 자동 계산
+        val tailLen = (SR * p.rt60 * 0.55f).toInt().coerceAtMost(SR * 3)
         val outLen  = n + tailLen
-        val wetBuf  = FloatArray(outLen)
+        val wet     = FloatArray(outLen)
 
-        val cD = intArrayOf(1307, 1637, 1811, 1931)
-        val cG = floatArrayOf(0.74f, 0.75f, 0.73f, 0.72f)
-        for (ci in cD.indices) {
-            val d = cD[ci]; val g = cG[ci]
+        val combDelays = intArrayOf(1307, 1637, 1811, 1931)
+        for (d in combDelays) {
+            // g = 10^(-3*delay_sec/RT60)
+            val g = 10f.pow(-3f * d.toFloat() / (SR * p.rt60))
             val buf = FloatArray(d); var pos = 0
             for (i in 0 until outLen) {
-                val x = if (i < n) lpf[i] else 0f
+                val x = if (i < n) peaked[i] else 0f
                 val y = x + g * buf[pos]
                 buf[pos] = y; pos = (pos + 1) % d
-                wetBuf[i] += y * 0.25f
+                wet[i] += y * 0.25f
+            }
+        }
+        // Allpass
+        for (apD in intArrayOf(225, 77)) {
+            val buf = FloatArray(apD); var pos = 0
+            val tmp = wet.copyOf()
+            for (i in tmp.indices) {
+                val x = tmp[i]; val bv = buf[pos]
+                wet[i] = -0.5f * x + bv + 0.5f * bv
+                buf[pos] = x + 0.5f * bv; pos = (pos + 1) % apD
             }
         }
 
-        // 4. dry 92% + wet 8% → 스테레오
+        // ─ 6. Dry + Wet 믹스 → 스테레오 ─────────────────────
         val stereo = FloatArray(outLen * 2)
+        val dryGain = 1f - p.reverbWet
         for (i in 0 until outLen) {
-            val dry = if (i < n) lpf[i] else 0f
-            val wet = wetBuf[i]
-            stereo[i * 2]     = (0.92f * dry + 0.08f * wet).coerceIn(-1f, 1f)
-            stereo[i * 2 + 1] = (0.92f * dry + 0.06f * wet).coerceIn(-1f, 1f)
+            val dry = if (i < n) peaked[i] else 0f
+            val s   = (dryGain * dry + p.reverbWet * wet[i]).coerceIn(-1f, 1f)
+            stereo[i * 2]     = s
+            stereo[i * 2 + 1] = s
         }
         return stereo
+    }
+
+    // 저역통과 지수 스위프: web f.exponentialRampToValueAtTime
+    private fun applyLpfSweep(sig: FloatArray, fcStart: Float, fcEnd: Float, sweepSec: Float): FloatArray {
+        val result = FloatArray(sig.size)
+        var prev   = 0f
+        val ratio  = fcEnd / fcStart
+        for (i in sig.indices) {
+            val t  = i.toFloat() / SR
+            val p  = (t / sweepSec).coerceIn(0f, 1f)
+            val fc = fcStart * ratio.pow(p)   // 지수 스위프
+            val a  = exp(-2f * PI.toFloat() * fc / SR)
+            val out = (1f - a) * sig[i] + a * prev
+            result[i] = out; prev = out
+        }
+        return result
+    }
+
+    // 밴드패스 스위프 (일렉피아노용)
+    private fun applyBandpassSweep(sig: FloatArray, fcStart: Float, fcEnd: Float, sweepSec: Float, Q: Float): FloatArray {
+        val result = FloatArray(sig.size)
+        var lpPrev = 0f; var hpPrev = 0f; var hpX = 0f
+        val ratio  = fcEnd / fcStart
+        for (i in sig.indices) {
+            val t  = i.toFloat() / SR
+            val p  = (t / sweepSec).coerceIn(0f, 1f)
+            val fc = fcStart * ratio.pow(p)
+            val bw = fc / Q
+            val aLp = exp(-2f * PI.toFloat() * (fc + bw * 0.5f) / SR)
+            val aHp = exp(-2f * PI.toFloat() * (fc - bw * 0.5f).coerceAtLeast(1f) / SR)
+            // HP: y = a*(y_prev + x - x_prev)
+            val hp  = aHp * (hpPrev + sig[i] - hpX)
+            hpPrev = hp; hpX = sig[i]
+            // LP of HP signal = bandpass
+            val bp  = (1f - aLp) * hp + aLp * lpPrev
+            lpPrev = bp
+            result[i] = bp
+        }
+        return result
     }
 
     private fun writeWav(stereo: FloatArray, file: File) {
@@ -287,20 +392,19 @@ class PianoSoundEngine(private val context: Context) {
     }
 
     // ══════════════════════════════════════════════════════════
-    //  합성 엔진: VIBRA / ORGAN
+    //  합성: VIBRA / ORGAN (AudioTrack)
     // ══════════════════════════════════════════════════════════
     private fun synthNote(note: String, frequency: Double) {
         val freq = frequency.toFloat()
-
         scope.launch(Dispatchers.Default) {
-            val durationMs = 3500L
-            val samples    = (SR * durationMs / 1000).toInt()
-            val data       = ShortArray(samples * 2)
+            val durMs  = 3500L
+            val nSamp  = (SR * durMs / 1000).toInt()
+            val data   = ShortArray(nSamp * 2)
 
             when (soundMode) {
-                // ─ 비브라폰: 맑은 사인파 + 5Hz 트레몰로 ─
                 SoundMode.VIBRA -> {
-                    for (i in 0 until samples) {
+                    // 밝은 사인파 + 5Hz 트레몰로 + 감쇠
+                    for (i in 0 until nSamp) {
                         val t    = i.toFloat() / SR
                         val env  = exp(-1.5f * t)
                         val trem = 1f + 0.25f * sin(2 * PI.toFloat() * 5f * t)
@@ -309,15 +413,13 @@ class PianoSoundEngine(private val context: Context) {
                         data[i * 2] = s16; data[i * 2 + 1] = s16
                     }
                 }
-
-                // ─ 오르간: Hammond 풍 배음 합성 ─
                 SoundMode.ORGAN -> {
-                    // 16' 8' 5⅓' 4' 2⅔' 2' 1⅗' 1⅓' 1'
+                    // Hammond 풍 9배음 합성
                     val drawbars  = floatArrayOf(0.5f, 1.0f, 0.8f, 0.7f, 0.4f, 0.5f, 0.3f, 0.2f, 0.1f)
                     val freqMults = floatArrayOf(0.5f, 1f, 1.5f, 2f, 3f, 4f, 5f, 6f, 8f)
                     val totalW    = drawbars.sum()
                     val attackS   = (SR * 0.012f).toInt()
-                    for (i in 0 until samples) {
+                    for (i in 0 until nSamp) {
                         val t   = i.toFloat() / SR
                         val env = if (i < attackS) i.toFloat() / attackS else 1f
                         var s   = 0f
@@ -328,7 +430,6 @@ class PianoSoundEngine(private val context: Context) {
                         data[i * 2] = s16; data[i * 2 + 1] = s16
                     }
                 }
-
                 else -> return@launch
             }
 
@@ -338,26 +439,21 @@ class PianoSoundEngine(private val context: Context) {
                 .setAudioAttributes(
                     AudioAttributes.Builder()
                         .setUsage(AudioAttributes.USAGE_MEDIA)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                        .build()
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build()
                 )
                 .setAudioFormat(
                     AudioFormat.Builder()
-                        .setSampleRate(SR)
-                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                        .setChannelMask(AudioFormat.CHANNEL_OUT_STEREO)
-                        .build()
+                        .setSampleRate(SR).setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                        .setChannelMask(AudioFormat.CHANNEL_OUT_STEREO).build()
                 )
                 .setBufferSizeInBytes(maxOf(minBuf, data.size * 2))
-                .setTransferMode(AudioTrack.MODE_STATIC)
-                .build()
+                .setTransferMode(AudioTrack.MODE_STATIC).build()
 
             track.write(data, 0, data.size)
             track.setVolume(_volume)
             track.play()
             activeSynth[note] = track
-
-            delay(durationMs + 300)
+            delay(durMs + 300)
             activeSynth.remove(note)
             runCatching { track.stop(); track.release() }
         }
@@ -370,21 +466,15 @@ class PianoSoundEngine(private val context: Context) {
         stopNote(note)
 
         if (soundMode == SoundMode.VIBRA || soundMode == SoundMode.ORGAN) {
-            synthNote(note, frequency)
-            return
+            synthNote(note, frequency); return
         }
 
-        val ref = noteRefs[note] ?: return
-        val id  = soundIds[ref.base] ?: return
+        val ref     = noteRefs[note] ?: return
+        val idMap   = soundIdsByMode[soundMode] ?: return
+        val id      = idMap[ref.base] ?: return
         if (id !in loadedSounds) return
 
-        val vol = when (soundMode) {
-            SoundMode.SOFT     -> _volume * 0.80f
-            SoundMode.ELECTRIC -> _volume * 0.95f
-            else               -> _volume
-        }
-
-        val stream = soundPool.play(id, vol, vol, 1, 0, ref.rate.coerceIn(0.5f, 2.0f))
+        val stream = soundPool.play(id, _volume, _volume, 1, 0, ref.rate.coerceIn(0.5f, 2.0f))
         if (stream != 0) activePool[note] = stream
     }
 
