@@ -12,10 +12,13 @@ android {
         applicationId = "com.pianoacademy"
         minSdk = 26
         targetSdk = 35
-        versionCode = 17
-        versionName = "1.1.7"
+        versionCode = 18
+        versionName = "1.1.8"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
+
+    // APK 파일명: piano-academy-v{버전}.apk
+    setProperty("archivesBaseName", "piano-academy-v${defaultConfig.versionName}")
 
     buildTypes {
         release {
