@@ -473,7 +473,9 @@ class PianoSoundEngine(private val context: Context) {
     //  공개 API
     // ══════════════════════════════════════════════════════════
     fun playNote(note: String, frequency: Double) {
-        stopNote(note)
+        // 같은 음 재타격 시 이전 스트림만 즉시 중단 (중복 방지)
+        activePool.remove(note)?.let { soundPool.stop(it) }
+        activeSynth.remove(note)?.let { t -> scope.launch { runCatching { t.stop(); t.release() } } }
 
         if (soundMode == SoundMode.VIBRA || soundMode == SoundMode.ORGAN) {
             synthNote(note, frequency); return
@@ -488,7 +490,11 @@ class PianoSoundEngine(private val context: Context) {
     }
 
     fun stopNote(note: String) {
-        activePool.remove(note)?.let { soundPool.stop(it) }
+        // SoundPool(실제 샘플): 즉시 중단 안 함 → WAV의 자연 감쇠/리버브 꼬리까지 재생
+        // 실제 피아노처럼 짧게 쳐도 현이 울리고 자연스럽게 소멸
+        activePool.remove(note)   // 추적만 제거 (soundPool.stop() 호출 안 함)
+
+        // AudioTrack 합성(VIBRA/ORGAN)은 무한 루프이므로 반드시 중단
         activeSynth.remove(note)?.let { t -> scope.launch { runCatching { t.stop(); t.release() } } }
     }
 
