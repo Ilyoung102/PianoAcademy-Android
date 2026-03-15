@@ -18,16 +18,21 @@ import com.pianoacademy.data.*
 import com.pianoacademy.ui.theme.PianoColors
 import com.pianoacademy.viewmodel.PlayMode
 
-// 2옥타브 피아노롤 (C4~B5, 24음 — 위=높은음, 아래=낮은음)
-// C5(높은도)~B5가 위쪽, C4~B4가 아래쪽 → 2옥타브 선명하게 표시
-private val ROLL_NOTES = listOf(
+// 피아노롤 음표 목록
+// 세로모드: 2옥타브 (C4~B5, 24음)
+private val ROLL_NOTES_FULL = listOf(
     "B5","A#5","A5","G#5","G5","F#5","F5","E5","D#5","D5","C#5","C5",
     "B4","A#4","A4","G#4","G4","F#4","F4","E4","D#4","D4","C#4","C4"
 )
-private val BLACK_NOTES = setOf(
+// 가로모드: 1옥타브 (C5~B5, 12음) — 악보 영역이 크므로 롤은 1옥타브만
+private val ROLL_NOTES_COMPACT = listOf(
+    "B5","A#5","A5","G#5","G5","F#5","F5","E5","D#5","D5","C#5","C5"
+)
+private val BLACK_NOTES_FULL = setOf(
     "A#5","G#5","F#5","D#5","C#5",
     "A#4","G#4","F#4","D#4","C#4"
 )
+private val BLACK_NOTES_COMPACT = setOf("A#5","G#5","F#5","D#5","C#5")
 
 @Composable
 fun SheetMusicView(
@@ -57,6 +62,10 @@ fun SheetMusicView(
         label = "sheetScroll"
     )
 
+    // 가로/세로 음표 목록 선택
+    val rollNotes  = if (isLandscape) ROLL_NOTES_COMPACT  else ROLL_NOTES_FULL
+    val blackNotes = if (isLandscape) BLACK_NOTES_COMPACT else BLACK_NOTES_FULL
+
     Canvas(
         modifier = modifier
             .fillMaxSize()
@@ -69,28 +78,72 @@ fun SheetMusicView(
         val scrollX = vw / 2f - animBeat * BW
 
         // ══════════════════════════════════════════════════════
-        // 상단: 오선 악보 (가로=20%, 세로=38%)
+        // 상단: 오선 악보
+        // 가로=50% (2옥타브 표시), 세로=38%
         // ══════════════════════════════════════════════════════
-        val staffRatio = if (isLandscape) 0.20f else 0.38f
+        val staffRatio = if (isLandscape) 0.50f else 0.38f
         val staffH  = vh * staffRatio
-        val SS      = 8.5f
-        val centerY = staffH * 0.52f
 
-        for (li in -5..5) {
+        // 적응형 SS: 가로모드는 C4(0)~B5(13) = 13 steps 을 staffH 안에 담음
+        val SS = if (isLandscape) (staffH / 14f).coerceIn(6f, 11f) else 8.5f
+
+        // 기준점: 가로=아래쪽(C4가 하단), 세로=중앙
+        val centerY = if (isLandscape) staffH * 0.98f else staffH * 0.52f
+
+        if (isLandscape) {
+            // ── 가로모드: 2옥타브 두 세트 악보줄 ──
+            // 배경 미세 가이드 라인 (각 오프셋 위치)
+            for (off in 0..14) {
+                drawLine(
+                    color = Color(0xFF191C28),
+                    start = Offset(0f, centerY - off * SS),
+                    end   = Offset(vw, centerY - off * SS),
+                    strokeWidth = 0.4f
+                )
+            }
+            // 하단 5선 (E4=2, G4=4, B4=6, D5=8, F5=10)
+            for (off in listOf(2, 4, 6, 8, 10)) {
+                drawLine(
+                    color = Color(0xFF3A3F60),
+                    start = Offset(0f, centerY - off * SS),
+                    end   = Offset(vw, centerY - off * SS),
+                    strokeWidth = 1.1f
+                )
+            }
+            // 상단 5선 (E5=9, G5=11, B5=13, + 2선 확장)
+            for (off in listOf(9, 11, 13)) {
+                drawLine(
+                    color = Color(0xFF3A3F60),
+                    start = Offset(0f, centerY - off * SS),
+                    end   = Offset(vw, centerY - off * SS),
+                    strokeWidth = 1.1f
+                )
+            }
+            // 옥타브 구분 표시 (C5=7 위치에 가는 구분선)
             drawLine(
-                color = Color(0xFF191C28),
-                start = Offset(0f, centerY - li * SS * 2),
-                end   = Offset(vw, centerY - li * SS * 2),
+                color = Color(0xFF2A3068),
+                start = Offset(vw * 0.02f, centerY - 7.5f * SS),
+                end   = Offset(vw * 0.98f, centerY - 7.5f * SS),
                 strokeWidth = 0.6f
             )
-        }
-        for (i in -2..2) {
-            drawLine(
-                color = Color(0xFF353A58),
-                start = Offset(0f, centerY - i * SS),
-                end   = Offset(vw, centerY - i * SS),
-                strokeWidth = 1.1f
-            )
+        } else {
+            // ── 세로모드: 기존 단일 5선 ──
+            for (li in -5..5) {
+                drawLine(
+                    color = Color(0xFF191C28),
+                    start = Offset(0f, centerY - li * SS * 2),
+                    end   = Offset(vw, centerY - li * SS * 2),
+                    strokeWidth = 0.6f
+                )
+            }
+            for (i in -2..2) {
+                drawLine(
+                    color = Color(0xFF353A58),
+                    start = Offset(0f, centerY - i * SS),
+                    end   = Offset(vw, centerY - i * SS),
+                    strokeWidth = 1.1f
+                )
+            }
         }
 
         var xAcc = 0f
@@ -179,11 +232,11 @@ fun SheetMusicView(
             start = Offset(0f, staffH), end = Offset(vw, staffH), strokeWidth = 1f)
 
         // ══════════════════════════════════════════════════════
-        // 하단: 2옥타브 피아노롤 (C4~B5, 24음)
+        // 하단: 피아노롤 (가로=1옥타브 C5~B5, 세로=2옥타브 C4~B5)
         // ══════════════════════════════════════════════════════
         val rollTop = staffH + 1f
         val rollH   = vh - rollTop
-        val rowH    = rollH / ROLL_NOTES.size
+        val rowH    = rollH / rollNotes.size
 
         // 균일한 다크 배경 (줄무늬 없음)
         drawRect(
@@ -193,7 +246,7 @@ fun SheetMusicView(
         )
 
         // 행 구분선 (매우 연함) + 옥타브 경계선
-        ROLL_NOTES.forEachIndexed { i, note ->
+        rollNotes.forEachIndexed { i, note ->
             val y = rollTop + i * rowH
             drawLine(
                 color = Color(0xFF16192A),
@@ -211,8 +264,8 @@ fun SheetMusicView(
             }
         }
 
-        // 옥타브 레이블 (C5, C4)
-        ROLL_NOTES.forEachIndexed { i, note ->
+        // 옥타브 레이블
+        rollNotes.forEachIndexed { i, note ->
             if (note == "C5" || note == "C4") {
                 val y = rollTop + i * rowH
                 drawIntoCanvas { canvas ->
@@ -239,7 +292,7 @@ fun SheetMusicView(
             val isCurrent = idx == stepIndex
 
             step.keys.forEach { note ->
-                val rowIdx = ROLL_NOTES.indexOf(note)
+                val rowIdx = rollNotes.indexOf(note)
                 if (rowIdx < 0) return@forEach
 
                 val color = when {
