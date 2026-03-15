@@ -35,7 +35,8 @@ data class PianoUiState(
     val gameResult: GameResult? = null,
     val bestScores: Map<String, Int> = emptyMap(),
     val wrongCount: Int = 0,
-    val keyOctaveShift: Int = 0
+    val keyOctaveShift: Int = 0,
+    val isSustainPedal: Boolean = false
 )
 
 data class GameResult(
@@ -55,6 +56,7 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
     private var inputWaitJob: Job? = null
     private val bestScores = mutableMapOf<String, Int>()
     private var wrongCount = 0
+    private val sustainedNotes = mutableSetOf<String>()
 
     fun pressKey(note: String) {
         val freq = NOTE_MAP[note]?.frequency ?: noteToFrequency(note)
@@ -73,13 +75,28 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
         _uiState.update { it.copy(keyOctaveShift = (it.keyOctaveShift + delta).coerceIn(-2, 2)) }
     }
 
-    fun releaseKey(note: String) {
-        soundEngine.stopNote(note)
+    fun releaseKey(note: String, natural: Boolean = true) {
+        if (_uiState.value.isSustainPedal) {
+            // 페달 ON: 소리는 유지, 추적만 등록
+            sustainedNotes.add(note)
+        } else {
+            soundEngine.stopNote(note, natural)
+        }
         _uiState.update { it.copy(
             activeKeys = it.activeKeys - note,
             wrongKeys = it.wrongKeys - note,
             correctKeys = it.correctKeys - note
         )}
+    }
+
+    fun toggleSustainPedal() {
+        val isActive = _uiState.value.isSustainPedal
+        if (isActive) {
+            // 페달 OFF: 유지 중이던 음 자연 감쇠로 정지
+            sustainedNotes.forEach { soundEngine.stopNote(it, natural = true) }
+            sustainedNotes.clear()
+        }
+        _uiState.update { it.copy(isSustainPedal = !it.isSustainPedal) }
     }
 
     private fun handleInteractiveInput(pressedNote: String) {
@@ -166,6 +183,7 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
     fun stopPlayback() {
         autoPlayJob?.cancel()
         inputWaitJob?.cancel()
+        sustainedNotes.clear()
         soundEngine.stopAll()
         _uiState.update { it.copy(
             isPlaying = false,

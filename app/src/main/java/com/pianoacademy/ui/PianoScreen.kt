@@ -55,7 +55,9 @@ fun PianoScreen(
                 onToggleNoteNames = { vm.toggleShowNoteNames() },
                 onToggleNextHint = { vm.toggleShowNextHint() },
                 keyOctaveShift = state.keyOctaveShift,
-                onShiftKeyboard = { vm.shiftKeyboard(it) }
+                onShiftKeyboard = { vm.shiftKeyboard(it) },
+                isSustainPedal = state.isSustainPedal,
+                onToggleSustainPedal = { vm.toggleSustainPedal() }
             )
 
             ScoreArea(state, modifier = Modifier.weight(1f))
@@ -73,7 +75,7 @@ fun PianoScreen(
                 isLandscape = state.isLandscape,
                 octaveShift = state.keyOctaveShift,
                 onNoteOn = { vm.pressKey(it) },
-                onNoteOff = { vm.releaseKey(it) },
+                onNoteOff = { note, natural -> vm.releaseKey(note, natural) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(if (state.isLandscape) 144.dp else 195.dp)

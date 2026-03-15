@@ -57,6 +57,8 @@ fun TopBar(
     onToggleNoteNames: () -> Unit,
     onToggleNextHint: () -> Unit,
     onShiftKeyboard: (Int) -> Unit = {},
+    isSustainPedal: Boolean = false,
+    onToggleSustainPedal: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val levelCfg = LEVEL_CONFIG[selectedLevel]
@@ -216,7 +218,7 @@ fun TopBar(
                 }
             }
 
-            // ── Row 2: 볼륨 슬라이더 | 템포 슬라이더 ──
+            // ── Row 2: 볼륨(30%↓) | 페달+아이콘 중앙 | 템포(30%↓) ──
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -224,47 +226,93 @@ fun TopBar(
                     .padding(bottom = 1.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("🔊", fontSize = 13.sp)
-                Spacer(Modifier.width(4.dp))
-                Slider(
-                    value = volume,
-                    onValueChange = onVolumeChange,
-                    valueRange = 0f..1f,
-                    modifier = Modifier.weight(1f).height(18.dp),
-                    colors = SliderDefaults.colors(
-                        thumbColor = PianoColors.Amber,
-                        activeTrackColor = PianoColors.Amber,
-                        inactiveTrackColor = Color(0xFF2A2D3E)
+                // 왼쪽: 음량 (기존 대비 70%)
+                Row(
+                    modifier = Modifier.weight(0.35f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("🔊", fontSize = 12.sp)
+                    Spacer(Modifier.width(3.dp))
+                    Slider(
+                        value = volume,
+                        onValueChange = onVolumeChange,
+                        valueRange = 0f..1f,
+                        modifier = Modifier.weight(1f).height(16.dp),
+                        colors = SliderDefaults.colors(
+                            thumbColor = PianoColors.Amber,
+                            activeTrackColor = PianoColors.Amber,
+                            inactiveTrackColor = Color(0xFF2A2D3E)
+                        )
                     )
-                )
-                Spacer(Modifier.width(3.dp))
-                Text(
-                    "${(volume * 100).toInt()}%",
-                    fontSize = 10.sp, color = PianoColors.TextSecondary,
-                    modifier = Modifier.width(26.dp)
-                )
-
-                Spacer(Modifier.width(14.dp))
-
-                Text("🎵", fontSize = 13.sp)
-                Spacer(Modifier.width(4.dp))
-                Slider(
-                    value = tempoMultiplier,
-                    onValueChange = onTempoChange,
-                    valueRange = 0.5f..2.0f,
-                    modifier = Modifier.weight(1f).height(18.dp),
-                    colors = SliderDefaults.colors(
-                        thumbColor = PianoColors.Blue,
-                        activeTrackColor = PianoColors.Blue,
-                        inactiveTrackColor = Color(0xFF2A2D3E)
+                    Spacer(Modifier.width(3.dp))
+                    Text(
+                        "${(volume * 100).toInt()}%",
+                        fontSize = 9.sp, color = PianoColors.TextSecondary,
+                        modifier = Modifier.width(24.dp)
                     )
-                )
-                Spacer(Modifier.width(3.dp))
-                Text(
-                    "×${String.format("%.1f", tempoMultiplier)}",
-                    fontSize = 10.sp, color = PianoColors.TextSecondary,
-                    modifier = Modifier.width(30.dp)
-                )
+                }
+
+                // 중앙: 페달 + 향후 기능 아이콘 공간
+                Row(
+                    modifier = Modifier.weight(0.30f),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // 서스테인 페달 버튼
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(
+                                if (isSustainPedal)
+                                    Brush.verticalGradient(listOf(PianoColors.Blue.copy(0.5f), PianoColors.Blue.copy(0.3f)))
+                                else
+                                    Brush.verticalGradient(listOf(Color(0xFF1C1F2E), Color(0xFF181B28)))
+                            )
+                            .border(1.dp, if (isSustainPedal) PianoColors.Blue else Color(0xFF282B3E), RoundedCornerShape(6.dp))
+                            .clickable { onToggleSustainPedal() }
+                            .padding(horizontal = 10.dp, vertical = 3.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text("🦶", fontSize = 13.sp)
+                            Text(
+                                "페달",
+                                fontSize = 9.sp,
+                                color = if (isSustainPedal) Color.White else PianoColors.TextSecondary,
+                                fontWeight = if (isSustainPedal) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    }
+                }
+
+                // 오른쪽: 템포 (기존 대비 70%)
+                Row(
+                    modifier = Modifier.weight(0.35f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("🎵", fontSize = 12.sp)
+                    Spacer(Modifier.width(3.dp))
+                    Slider(
+                        value = tempoMultiplier,
+                        onValueChange = onTempoChange,
+                        valueRange = 0.5f..2.0f,
+                        modifier = Modifier.weight(1f).height(16.dp),
+                        colors = SliderDefaults.colors(
+                            thumbColor = PianoColors.Blue,
+                            activeTrackColor = PianoColors.Blue,
+                            inactiveTrackColor = Color(0xFF2A2D3E)
+                        )
+                    )
+                    Spacer(Modifier.width(3.dp))
+                    Text(
+                        "×${String.format("%.1f", tempoMultiplier)}",
+                        fontSize = 9.sp, color = PianoColors.TextSecondary,
+                        modifier = Modifier.width(28.dp)
+                    )
+                }
             }
 
             // 진행 바

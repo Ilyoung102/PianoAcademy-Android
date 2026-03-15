@@ -486,13 +486,16 @@ class PianoSoundEngine(private val context: Context) {
         if (stream != 0) activePool[note] = stream
     }
 
-    fun stopNote(note: String) {
-        // SoundPool(실제 샘플): 즉시 중단 안 함 → WAV의 자연 감쇠/리버브 꼬리까지 재생
-        // 실제 피아노처럼 짧게 쳐도 현이 울리고 자연스럽게 소멸
-        activePool.remove(note)   // 추적만 제거 (soundPool.stop() 호출 안 함)
-
-        // AudioTrack 합성(VIBRA/ORGAN)은 무한 루프이므로 반드시 중단
-        activeSynth.remove(note)?.let { t -> scope.launch { runCatching { t.stop(); t.release() } } }
+    fun stopNote(note: String, natural: Boolean = true) {
+        if (!natural) {
+            // 짧은 터치: 즉시 소리 차단 (댐퍼 효과)
+            activePool.remove(note)?.let { soundPool.stop(it) }
+            activeSynth.remove(note)?.let { t -> scope.launch { runCatching { t.stop(); t.release() } } }
+        } else {
+            // 긴 터치: 자연 감쇠 (소리가 울리고 소멸)
+            activePool.remove(note)   // 추적만 제거, SoundPool 스트림은 자연 소멸
+            activeSynth.remove(note)  // AudioTrack은 synthNote 코루틴이 delay 후 자동 정리
+        }
     }
 
     fun stopAll() {

@@ -66,7 +66,7 @@ fun PianoKeyboard(
     isLandscape: Boolean,
     octaveShift: Int = 0,
     onNoteOn: (String) -> Unit,
-    onNoteOff: (String) -> Unit,
+    onNoteOff: (String, Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val keyLayouts = remember(isLandscape, octaveShift) { computeKeyLayouts(isLandscape, octaveShift) }
@@ -74,8 +74,10 @@ fun PianoKeyboard(
     val blacks = remember(keyLayouts) { keyLayouts.filter { it.type == KeyType.BLACK } }
 
     val pointerNotes = remember { mutableStateMapOf<Long, String>() }
+    val notePressTime = remember { mutableStateMapOf<String, Long>() }  // 음 → 눌린 시각
     var keyboardWidthPx by remember { mutableStateOf(0f) }
     var keyboardHeightPx by remember { mutableStateOf(0f) }
+    val HOLD_MS = 150L  // 이 이상 누르면 자연 감쇠, 미만이면 즉시 차단
 
     fun noteAtPosition(offset: Offset): String? {
         if (keyboardWidthPx == 0f) return null
@@ -118,6 +120,7 @@ fun PianoKeyboard(
                                     val note = noteAtPosition(change.position)
                                     if (note != null) {
                                         pointerNotes[pointerId] = note
+                                        notePressTime[note] = System.currentTimeMillis()
                                         latestOnNoteOn(note)
                                     }
                                     change.consume()
@@ -126,9 +129,13 @@ fun PianoKeyboard(
                                     val newNote = noteAtPosition(change.position)
                                     val oldNote = pointerNotes[pointerId]
                                     if (newNote != oldNote) {
-                                        if (oldNote != null) latestOnNoteOff(oldNote)
+                                        if (oldNote != null) {
+                                            val heldMs = System.currentTimeMillis() - (notePressTime.remove(oldNote) ?: 0L)
+                                            latestOnNoteOff(oldNote, heldMs >= HOLD_MS)
+                                        }
                                         if (newNote != null) {
                                             pointerNotes[pointerId] = newNote
+                                            notePressTime[newNote] = System.currentTimeMillis()
                                             latestOnNoteOn(newNote)
                                         } else {
                                             pointerNotes.remove(pointerId)
@@ -138,7 +145,10 @@ fun PianoKeyboard(
                                 }
                                 !change.pressed && pointerNotes.containsKey(pointerId) -> {
                                     val note = pointerNotes.remove(pointerId)
-                                    if (note != null) latestOnNoteOff(note)
+                                    if (note != null) {
+                                        val heldMs = System.currentTimeMillis() - (notePressTime.remove(note) ?: 0L)
+                                        latestOnNoteOff(note, heldMs >= HOLD_MS)
+                                    }
                                     change.consume()
                                 }
                             }
