@@ -258,7 +258,7 @@ fun TopBar(
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // 서스테인 페달 버튼
+                    // 서스테인 페달 버튼 (3페달 아이콘)
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
@@ -270,14 +270,18 @@ fun TopBar(
                             )
                             .border(1.dp, if (isSustainPedal) PianoColors.Blue else Color(0xFF282B3E), RoundedCornerShape(6.dp))
                             .clickable { onToggleSustainPedal() }
-                            .padding(horizontal = 10.dp, vertical = 3.dp),
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            horizontalArrangement = Arrangement.spacedBy(5.dp)
                         ) {
-                            Text("🦶", fontSize = 13.sp)
+                            // 3페달 아이콘 Canvas
+                            ThreePedalIcon(
+                                isActive = isSustainPedal,
+                                modifier = Modifier.size(width = 28.dp, height = 16.dp)
+                            )
                             Text(
                                 "페달",
                                 fontSize = 9.sp,
@@ -472,6 +476,57 @@ fun TopBar(
                     onVolumeChange, onTempoChange, onToggleNoteNames, onToggleNextHint, onSoundModeChange
                 )
             }
+        }
+    }
+}
+
+// 피아노 3페달 아이콘 (왼쪽=우나코르다, 가운데=소스테누토, 오른쪽=서스테인/강조)
+@Composable
+private fun ThreePedalIcon(isActive: Boolean, modifier: Modifier = Modifier) {
+    val activeColor = Color(0xFF3B82F6)   // 파랑 (서스테인 페달 활성색)
+    val inactiveColor = Color(0xFF6B7094)
+    val pedalColor = if (isActive) activeColor else inactiveColor
+
+    Canvas(modifier = modifier) {
+        val totalW = size.width
+        val totalH = size.height
+        val pedalW = totalW * 0.22f       // 각 페달 너비
+        val gap = totalW * 0.08f
+        val baseY = totalH * 0.15f
+
+        // 페달 높이: 왼쪽(짧음), 가운데(중간), 오른쪽(가장 김 = 서스테인)
+        val heights = floatArrayOf(totalH * 0.65f, totalH * 0.72f, totalH * 0.85f)
+        val startXs = floatArrayOf(
+            0f,
+            pedalW + gap,
+            (pedalW + gap) * 2f
+        )
+
+        for (i in 0..2) {
+            val x = startXs[i]
+            val h = heights[i]
+            val color = if (i == 2 && isActive) activeColor else {
+                if (isActive) activeColor.copy(alpha = 0.55f) else inactiveColor
+            }
+
+            // 페달 몸통 (둥근 하단)
+            val path = androidx.compose.ui.graphics.Path().apply {
+                moveTo(x, baseY)
+                lineTo(x + pedalW, baseY)
+                lineTo(x + pedalW, baseY + h - pedalW * 0.4f)
+                quadraticTo(x + pedalW, baseY + h, x + pedalW * 0.5f, baseY + h)
+                quadraticTo(x, baseY + h, x, baseY + h - pedalW * 0.4f)
+                close()
+            }
+            drawPath(path, color)
+
+            // 페달 상단 연결 줄기 (위로 가는 스템)
+            drawLine(
+                color = color,
+                start = androidx.compose.ui.geometry.Offset(x + pedalW / 2f, 0f),
+                end = androidx.compose.ui.geometry.Offset(x + pedalW / 2f, baseY),
+                strokeWidth = pedalW * 0.3f
+            )
         }
     }
 }

@@ -143,7 +143,8 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
             selectedSong = song,
             playMode = PlayMode.AUTO,
             isPlaying = true,
-            stepIndex = 0
+            stepIndex = 0,
+            keyOctaveShift = 0   // 재생 시 표준 건반으로 초기화
         )}
         autoPlayJob = viewModelScope.launch {
             val tempoMul = _uiState.value.tempoMultiplier
@@ -176,7 +177,8 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
             highlightKeys = firstStep?.keys?.toSet() ?: emptySet(),
             waitingForInput = true,
             correctKeys = emptySet(),
-            wrongKeys = emptySet()
+            wrongKeys = emptySet(),
+            keyOctaveShift = 0   // 재생 시 표준 건반으로 초기화
         )}
     }
 
