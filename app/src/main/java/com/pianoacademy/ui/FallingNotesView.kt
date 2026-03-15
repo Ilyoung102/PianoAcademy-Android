@@ -53,7 +53,7 @@ fun FallingNotesView(
         timeline.getOrNull(stepIndex)?.firstOrNull()?.topOffsetBeats ?: 0f
     }
 
-    Box(modifier = modifier.background(Color(0xFF12141C))) {
+    Box(modifier = modifier.background(Color(0xFF0B0D17))) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val viewW = size.width
             val viewH = size.height
@@ -63,13 +63,13 @@ fun FallingNotesView(
 
             val hitLinePx = if (fallingMode == FallingMode.DOWN) viewH * 0.85f else viewH * 0.15f
 
-            // Column guide lines (left edge of each white key)
+            // Column guide lines (left edge of each white key) - very subtle
             keyLayouts.filter { it.type == KeyType.WHITE }.forEach { k ->
                 drawLine(
-                    color = Color(0xFF232637),
+                    color = Color(0xFF181A2C),
                     start = Offset(k.xFraction * viewW, 0f),
                     end = Offset(k.xFraction * viewW, viewH),
-                    strokeWidth = 0.5f
+                    strokeWidth = 0.4f
                 )
             }
 
@@ -90,10 +90,10 @@ fun FallingNotesView(
                     val kl = keyLayoutMap[fn.note] ?: return@forEach
 
                     val blockColor = when {
-                        isPast    -> Color(0xFF2D3342).copy(alpha = 0.55f)
+                        isPast    -> Color(0xFF2D3342).copy(alpha = 0.4f)
                         isCurrent -> if (playMode == PlayMode.AUTO) PianoColors.Blue
                                      else PianoColors.Emerald
-                        else      -> PianoColors.Amber.copy(alpha = 0.75f)
+                        else      -> PianoColors.Amber.copy(alpha = 0.90f)
                     }
 
                     // Correct vertical position using actual beat offsets

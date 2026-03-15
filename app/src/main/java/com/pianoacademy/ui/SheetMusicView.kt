@@ -179,26 +179,34 @@ fun SheetMusicView(
             start = Offset(0f, staffH), end = Offset(vw, staffH), strokeWidth = 1f)
 
         // ══════════════════════════════════════════════════════
-        // 하단: 3옥타브 피아노롤 (C3~B5, 36음)
+        // 하단: 2옥타브 피아노롤 (C4~B5, 24음)
         // ══════════════════════════════════════════════════════
         val rollTop = staffH + 1f
         val rollH   = vh - rollTop
         val rowH    = rollH / ROLL_NOTES.size
 
+        // 균일한 다크 배경 (줄무늬 없음)
+        drawRect(
+            color   = Color(0xFF0B0D17),
+            topLeft = Offset(0f, rollTop),
+            size    = Size(vw, rollH)
+        )
+
+        // 행 구분선 (매우 연함) + 옥타브 경계선
         ROLL_NOTES.forEachIndexed { i, note ->
-            val y       = rollTop + i * rowH
-            val isBlack = note in BLACK_NOTES
-            drawRect(
-                color   = if (isBlack) Color(0xFF0A0C15) else Color(0xFF111420),
-                topLeft = Offset(0f, y),
-                size    = Size(vw, rowH)
+            val y = rollTop + i * rowH
+            drawLine(
+                color = Color(0xFF16192A),
+                start = Offset(0f, y),
+                end   = Offset(vw, y),
+                strokeWidth = 0.5f
             )
-            if (note == "C5" || note == "C4" || note == "C3") {
+            if (note == "C5" || note == "C4") {
                 drawLine(
-                    color = Color(0xFF2A3060),
+                    color = Color(0xFF2D3870),
                     start = Offset(0f, y),
                     end   = Offset(vw, y),
-                    strokeWidth = 1.5f
+                    strokeWidth = 1.4f
                 )
             }
         }
@@ -235,9 +243,9 @@ fun SheetMusicView(
                 if (rowIdx < 0) return@forEach
 
                 val color = when {
-                    isPast    -> Color(0xFF252840).copy(alpha = 0.7f)
+                    isPast    -> Color(0xFF252840).copy(alpha = 0.5f)
                     isCurrent -> if (playMode == PlayMode.AUTO) PianoColors.Blue else PianoColors.Emerald
-                    else      -> PianoColors.Amber.copy(alpha = 0.65f)
+                    else      -> PianoColors.Amber.copy(alpha = 0.85f)
                 }
                 val y = rollTop + rowIdx * rowH
                 drawRoundRect(
