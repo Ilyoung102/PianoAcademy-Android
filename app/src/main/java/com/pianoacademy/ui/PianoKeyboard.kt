@@ -31,14 +31,15 @@ data class KeyLayout(
     val widthFraction: Float
 )
 
-fun computeKeyLayouts(isLandscape: Boolean): List<KeyLayout> {
-    val whites = PIANO_NOTES.filter { it.type == KeyType.WHITE }
+fun computeKeyLayouts(isLandscape: Boolean, octaveShift: Int = 0): List<KeyLayout> {
+    val noteList = if (octaveShift == 0) PIANO_NOTES else generatePianoNotes(3 + octaveShift)
+    val whites = noteList.filter { it.type == KeyType.WHITE }
     val totalWhite = whites.size
     val ww = 1f / totalWhite
     val bkScale = if (isLandscape) 0.85f else 1.0f
     var wi = 0
 
-    return PIANO_NOTES.map { note ->
+    return noteList.map { note ->
         if (note.type == KeyType.WHITE) {
             val x = wi * ww
             wi++
@@ -63,11 +64,12 @@ fun PianoKeyboard(
     correctKeys: Set<String>,
     showNoteNames: Boolean,
     isLandscape: Boolean,
+    octaveShift: Int = 0,
     onNoteOn: (String) -> Unit,
     onNoteOff: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val keyLayouts = remember(isLandscape) { computeKeyLayouts(isLandscape) }
+    val keyLayouts = remember(isLandscape, octaveShift) { computeKeyLayouts(isLandscape, octaveShift) }
     val whites = remember(keyLayouts) { keyLayouts.filter { it.type == KeyType.WHITE } }
     val blacks = remember(keyLayouts) { keyLayouts.filter { it.type == KeyType.BLACK } }
 
@@ -269,8 +271,9 @@ fun PianoKeyboard(
             )
         }
 
-        // ── 옥타브 마커 (C3, C4, C5) ─────────────────────────
-        listOf("C3", "C4", "C5").forEach { cNote ->
+        // ── 옥타브 마커 ─────────────────────────
+        val baseOctave = 3 + octaveShift
+        listOf("C${'$'}baseOctave", "C${'$'}{baseOctave+1}", "C${'$'}{baseOctave+2}").forEach { cNote ->
             val cKey = whites.firstOrNull { it.note == cNote }
             if (cKey != null && keyboardWidthPx > 0f) {
                 val xDp = with(LocalDensity.current) { (cKey.xFraction * keyboardWidthPx).toDp() }

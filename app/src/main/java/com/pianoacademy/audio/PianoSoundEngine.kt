@@ -46,17 +46,14 @@ class PianoSoundEngine(private val context: Context) {
         private const val SR = 44100
         private const val MAX_SAMP = SR * 4  // 음원 4초로 제한
 
-        private val NOTE_MIDI = mapOf(
-            "C3"  to 48, "C#3" to 49, "D3"  to 50, "D#3" to 51,
-            "E3"  to 52, "F3"  to 53, "F#3" to 54, "G3"  to 55,
-            "G#3" to 56, "A3"  to 57, "A#3" to 58, "B3"  to 59,
-            "C4"  to 60, "C#4" to 61, "D4"  to 62, "D#4" to 63,
-            "E4"  to 64, "F4"  to 65, "F#4" to 66, "G4"  to 67,
-            "G#4" to 68, "A4"  to 69, "A#4" to 70, "B4"  to 71,
-            "C5"  to 72, "C#5" to 73, "D5"  to 74, "D#5" to 75,
-            "E5"  to 76, "F5"  to 77, "F#5" to 78, "G5"  to 79,
-            "G#5" to 80, "A5"  to 81, "A#5" to 82, "B5"  to 83
-        )
+        private val NOTE_MIDI = buildMap<String, Int> {
+            val names = listOf("C","C#","D","D#","E","F","F#","G","G#","A","A#","B")
+            for (oct in 1..7) {
+                names.forEachIndexed { i, n ->
+                    put("$n$oct", (oct + 1) * 12 + i)
+                }
+            }
+        }
 
         private val BASES = listOf(
             "C3" to 48, "Ds3" to 51, "Fs3" to 54, "A3" to 57,

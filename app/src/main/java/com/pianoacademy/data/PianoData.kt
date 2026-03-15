@@ -63,6 +63,21 @@ val PIANO_NOTES: List<NoteKey> = listOf(
 
 val NOTE_MAP: Map<String, NoteKey> = PIANO_NOTES.associateBy { it.note }
 
+// 건반 옥타브 이동을 위한 동적 노트 생성 (fromOctave: 시작 옥타브, 3옥타브 범위)
+fun generatePianoNotes(fromOctave: Int): List<NoteKey> {
+    val names  = listOf("C","C#","D","D#","E","F","F#","G","G#","A","A#","B")
+    val types  = listOf(KeyType.WHITE,KeyType.BLACK,KeyType.WHITE,KeyType.BLACK,KeyType.WHITE,
+                        KeyType.WHITE,KeyType.BLACK,KeyType.WHITE,KeyType.BLACK,KeyType.WHITE,
+                        KeyType.BLACK,KeyType.WHITE)
+    return buildList {
+        for (oct in fromOctave until fromOctave + 3) {
+            names.forEachIndexed { i, n ->
+                add(NoteKey("$n$oct", types[i], noteToFrequency("$n$oct")))
+            }
+        }
+    }
+}
+
 val KOREAN_NAMES = mapOf(
     "C" to "도", "D" to "레", "E" to "미", "F" to "파",
     "G" to "솔", "A" to "라", "B" to "시"

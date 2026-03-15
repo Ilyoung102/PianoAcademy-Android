@@ -34,7 +34,8 @@ data class PianoUiState(
     val isLandscape: Boolean = false,
     val gameResult: GameResult? = null,
     val bestScores: Map<String, Int> = emptyMap(),
-    val wrongCount: Int = 0
+    val wrongCount: Int = 0,
+    val keyOctaveShift: Int = 0
 )
 
 data class GameResult(
@@ -56,7 +57,7 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
     private var wrongCount = 0
 
     fun pressKey(note: String) {
-        val freq = NOTE_MAP[note]?.frequency ?: return
+        val freq = NOTE_MAP[note]?.frequency ?: noteToFrequency(note)
         soundEngine.playNote(note, freq)
         _uiState.update { it.copy(activeKeys = it.activeKeys + note) }
         val state = _uiState.value
@@ -66,6 +67,10 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
         if (state.playMode == PlayMode.PRACTICE && state.isPlaying) {
             handleInteractiveInput(note)
         }
+    }
+
+    fun shiftKeyboard(delta: Int) {
+        _uiState.update { it.copy(keyOctaveShift = (it.keyOctaveShift + delta).coerceIn(-2, 2)) }
     }
 
     fun releaseKey(note: String) {

@@ -53,7 +53,9 @@ fun PianoScreen(
                 onTempoChange = { vm.setTempoMultiplier(it) },
                 onToggleSettings = { vm.toggleSettings() },
                 onToggleNoteNames = { vm.toggleShowNoteNames() },
-                onToggleNextHint = { vm.toggleShowNextHint() }
+                onToggleNextHint = { vm.toggleShowNextHint() },
+                keyOctaveShift = state.keyOctaveShift,
+                onShiftKeyboard = { vm.shiftKeyboard(it) }
             )
 
             ScoreArea(state, modifier = Modifier.weight(1f))
@@ -69,6 +71,7 @@ fun PianoScreen(
                 correctKeys = if (state.playMode == PlayMode.PRACTICE) emptySet() else state.correctKeys,
                 showNoteNames = state.showNoteNames,
                 isLandscape = state.isLandscape,
+                octaveShift = state.keyOctaveShift,
                 onNoteOn = { vm.pressKey(it) },
                 onNoteOff = { vm.releaseKey(it) },
                 modifier = Modifier
