@@ -12,8 +12,8 @@ android {
         applicationId = "com.pianoacademy"
         minSdk = 26
         targetSdk = 35
-        versionCode = 23
-        versionName = "1.2.3"
+        versionCode = 25
+        versionName = "1.2.5"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

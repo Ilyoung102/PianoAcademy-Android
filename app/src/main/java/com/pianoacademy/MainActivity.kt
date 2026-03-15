@@ -4,6 +4,9 @@ import android.media.audiofx.BassBoost
 import android.media.audiofx.PresetReverb
 import android.os.Bundle
 import android.util.Log
+import android.view.View
+import android.view.WindowInsets
+import android.view.WindowInsetsController
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -28,6 +31,12 @@ class MainActivity : ComponentActivity() {
 
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         enableEdgeToEdge()
+
+        // 전체화면 몰입 모드: 상태바/네비게이션 바 완전 숨김
+        window.insetsController?.let { ctrl ->
+            ctrl.hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
+            ctrl.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
 
         // 피아노 음질 향상: 소방 리버브 + 저음 강조
         // session 0 = 출력 믹스 전체에 적용 (앱 포그라운드 중에만)

@@ -109,31 +109,25 @@ fun SheetMusicView(
 
         // ── 오선 그리기 ──
         if (isLandscape) {
-            // 하단 5선: E4(2), G4(4), B4(6), D5(8), F5(10) — 밝고 선명하게
+            // 확장 보조선: D3(-6), F3(-4), A3(-2), C4(0), A5(12)
+            // 이 선들이 없으면 해당 음표가 허공에 떠 보임
+            for (off in listOf(-6, -4, -2, 0, 12)) {
+                drawLine(
+                    color = Color(0xFF343870),
+                    start = Offset(0f, centerY - off * SS),
+                    end   = Offset(vw, centerY - off * SS),
+                    strokeWidth = 1.0f
+                )
+            }
+            // 표준 트레블 클레프 5선: E4(2), G4(4), B4(6), D5(8), F5(10) — 밝고 선명하게
             for (off in listOf(2, 4, 6, 8, 10)) {
                 drawLine(
-                    color = Color(0xFF4E5480),
+                    color = Color(0xFF5560A0),
                     start = Offset(0f, centerY - off * SS),
                     end   = Offset(vw, centerY - off * SS),
-                    strokeWidth = 1.4f
+                    strokeWidth = 1.6f
                 )
             }
-            // 상단 보조 3선: E5(9), G5(11), B5(13) — 약간 연하게
-            for (off in listOf(9, 11, 13)) {
-                drawLine(
-                    color = Color(0xFF3D4068),
-                    start = Offset(0f, centerY - off * SS),
-                    end   = Offset(vw, centerY - off * SS),
-                    strokeWidth = 1.1f
-                )
-            }
-            // C3 영역 보조 1선 (매우 낮은 음 참조용)
-            drawLine(
-                color = Color(0xFF2A2E50),
-                start = Offset(0f, centerY + 7 * SS),
-                end   = Offset(vw, centerY + 7 * SS),
-                strokeWidth = 0.8f
-            )
         } else {
             // 세로 모드: 표준 5선
             for (li in -5..5) {
