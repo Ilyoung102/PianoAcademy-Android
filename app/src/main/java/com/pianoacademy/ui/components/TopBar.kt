@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -165,7 +166,7 @@ fun TopBar(
                     onShift = onShiftKeyboard,
                     modifier = Modifier
                         .height(30.dp)
-                        .width(200.dp)
+                        .width(260.dp)
                 )
 
                 Spacer(Modifier.weight(1f))
@@ -220,7 +221,7 @@ fun TopBar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 10.dp)
-                    .padding(bottom = 3.dp),
+                    .padding(bottom = 1.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("🔊", fontSize = 13.sp)
@@ -229,7 +230,7 @@ fun TopBar(
                     value = volume,
                     onValueChange = onVolumeChange,
                     valueRange = 0f..1f,
-                    modifier = Modifier.weight(1f).height(24.dp),
+                    modifier = Modifier.weight(1f).height(18.dp),
                     colors = SliderDefaults.colors(
                         thumbColor = PianoColors.Amber,
                         activeTrackColor = PianoColors.Amber,
@@ -251,7 +252,7 @@ fun TopBar(
                     value = tempoMultiplier,
                     onValueChange = onTempoChange,
                     valueRange = 0.5f..2.0f,
-                    modifier = Modifier.weight(1f).height(24.dp),
+                    modifier = Modifier.weight(1f).height(18.dp),
                     colors = SliderDefaults.colors(
                         thumbColor = PianoColors.Blue,
                         activeTrackColor = PianoColors.Blue,
@@ -434,6 +435,8 @@ private fun MiniKeyboardPreview(
     onShift: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val latestOnShift by rememberUpdatedState(onShift)
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(3.dp)
@@ -444,7 +447,7 @@ private fun MiniKeyboardPreview(
                 .size(22.dp)
                 .clip(RoundedCornerShape(4.dp))
                 .background(if (octaveShift > -2) Color(0xFF1C1F2E) else Color(0xFF0F1018))
-                .then(if (octaveShift > -2) Modifier.clickable { onShift(-1) } else Modifier),
+                .then(if (octaveShift > -2) Modifier.clickable { latestOnShift(-1) } else Modifier),
             contentAlignment = Alignment.Center
         ) {
             Text(
@@ -453,7 +456,35 @@ private fun MiniKeyboardPreview(
             )
         }
 
-        Canvas(modifier = modifier) {
+        Canvas(
+            modifier = modifier.pointerInput(Unit) {
+                var accX = 0f
+                val octaveW = size.width / 7f  // C1-B7 = 7 octaves
+                awaitPointerEventScope {
+                    while (true) {
+                        val ev = awaitPointerEvent()
+                        ev.changes.forEach { change ->
+                            if (change.pressed && change.positionChanged()) {
+                                val dx = change.position.x - change.previousPosition.x
+                                accX += dx
+                                while (accX > octaveW) {
+                                    latestOnShift(1)
+                                    accX -= octaveW
+                                }
+                                while (accX < -octaveW) {
+                                    latestOnShift(-1)
+                                    accX += octaveW
+                                }
+                                change.consume()
+                            }
+                            if (!change.pressed) {
+                                accX = 0f
+                            }
+                        }
+                    }
+                }
+            }
+        ) {
             val totalWhites = 49  // 7 octaves C1-B7
             val ww = size.width / totalWhites
             val wh = size.height
@@ -477,7 +508,7 @@ private fun MiniKeyboardPreview(
                 }
             }
 
-            // 현재 visible 범위 하이라이트 (C1 기준: shift=0 → C3=index 14, 21 whites)
+            // 현재 visible 범위 하이라이트
             val visStart = (2 + octaveShift) * 7
             val visWidth = 21
             drawRect(
@@ -499,7 +530,7 @@ private fun MiniKeyboardPreview(
                 .size(22.dp)
                 .clip(RoundedCornerShape(4.dp))
                 .background(if (octaveShift < 2) Color(0xFF1C1F2E) else Color(0xFF0F1018))
-                .then(if (octaveShift < 2) Modifier.clickable { onShift(1) } else Modifier),
+                .then(if (octaveShift < 2) Modifier.clickable { latestOnShift(1) } else Modifier),
             contentAlignment = Alignment.Center
         ) {
             Text(

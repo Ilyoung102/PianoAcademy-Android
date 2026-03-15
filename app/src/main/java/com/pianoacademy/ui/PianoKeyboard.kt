@@ -92,6 +92,9 @@ fun PianoKeyboard(
         }?.note
     }
 
+    val latestOnNoteOn by rememberUpdatedState(onNoteOn)
+    val latestOnNoteOff by rememberUpdatedState(onNoteOff)
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -104,7 +107,7 @@ fun PianoKeyboard(
                 keyboardWidthPx = coords.size.width.toFloat()
                 keyboardHeightPx = coords.size.height.toFloat()
             }
-            .pointerInput(Unit) {
+            .pointerInput(keyLayouts) {
                 awaitPointerEventScope {
                     while (true) {
                         val event = awaitPointerEvent()
@@ -115,7 +118,7 @@ fun PianoKeyboard(
                                     val note = noteAtPosition(change.position)
                                     if (note != null) {
                                         pointerNotes[pointerId] = note
-                                        onNoteOn(note)
+                                        latestOnNoteOn(note)
                                     }
                                     change.consume()
                                 }
@@ -123,10 +126,10 @@ fun PianoKeyboard(
                                     val newNote = noteAtPosition(change.position)
                                     val oldNote = pointerNotes[pointerId]
                                     if (newNote != oldNote) {
-                                        if (oldNote != null) onNoteOff(oldNote)
+                                        if (oldNote != null) latestOnNoteOff(oldNote)
                                         if (newNote != null) {
                                             pointerNotes[pointerId] = newNote
-                                            onNoteOn(newNote)
+                                            latestOnNoteOn(newNote)
                                         } else {
                                             pointerNotes.remove(pointerId)
                                         }
@@ -135,7 +138,7 @@ fun PianoKeyboard(
                                 }
                                 !change.pressed && pointerNotes.containsKey(pointerId) -> {
                                     val note = pointerNotes.remove(pointerId)
-                                    if (note != null) onNoteOff(note)
+                                    if (note != null) latestOnNoteOff(note)
                                     change.consume()
                                 }
                             }
@@ -273,7 +276,7 @@ fun PianoKeyboard(
 
         // ── 옥타브 마커 ─────────────────────────
         val baseOctave = 3 + octaveShift
-        listOf("C${'$'}baseOctave", "C${'$'}{baseOctave+1}", "C${'$'}{baseOctave+2}").forEach { cNote ->
+        listOf("C$baseOctave", "C${baseOctave+1}", "C${baseOctave+2}").forEach { cNote ->
             val cKey = whites.firstOrNull { it.note == cNote }
             if (cKey != null && keyboardWidthPx > 0f) {
                 val xDp = with(LocalDensity.current) { (cKey.xFraction * keyboardWidthPx).toDp() }
