@@ -69,49 +69,71 @@ fun SheetMusicView(
 
         // ══════════════════════════════════════════════════════
         // 오선 악보 영역
-        // 가로: 72% (아래 노트큐 바 위), 세로: 100%
+        // 가로: 78% (아래 노트큐 바 22%), 세로: 100%
         // ══════════════════════════════════════════════════════
-        val staffRatio = if (isLandscape) 0.72f else 1.0f
+        val staffRatio = if (isLandscape) 0.78f else 1.0f
         val staffH = vh * staffRatio
 
-        // SS: 가로모드는 C4(0)~B5(13) 전체가 staffH 안에 들어오도록 적응
-        val SS = if (isLandscape) (staffH / 14.5f).coerceIn(6f, 12f) else 8.5f
+        // SS: C3(-7)~B5(+13) = 20step + 양쪽 여백 → staffH에 맞게 적응
+        // 가로모드는 전체 음역(3옥타브)을 표시, 세로모드는 고정값
+        val SS = if (isLandscape) (staffH / 23f).coerceIn(4.5f, 9f) else 8.5f
 
-        // 기준점: 가로=C4가 하단, 세로=전체 범위 중앙
-        val centerY = if (isLandscape) staffH * 0.96f else staffH * 0.52f
+        // 기준점:
+        //   가로 - G4(offset=4) 기준, C3~B5 모두 보임
+        //     C3(-7): centerY + 7*SS (아래)
+        //     B5(+13): centerY - 13*SS (위)
+        //   세로 - 전체 범위 중앙
+        val centerY = if (isLandscape) staffH * 0.62f else staffH * 0.52f
 
         // ── 배경 가이드 라인 (매우 연함) ──
-        val bgLineRange = if (isLandscape) -1..15 else -5..5
-        for (li in bgLineRange) {
-            val lStep = if (isLandscape) 1 else 2
-            drawLine(
-                color = Color(0xFF14172200),
-                start = Offset(0f, centerY - li * SS * lStep),
-                end   = Offset(vw, centerY - li * SS * lStep),
-                strokeWidth = 0.4f
-            )
+        if (isLandscape) {
+            // 가로모드: C3(-7)~B5(+13) 범위의 모든 반음 위치에 가이드
+            for (off in -8..14) {
+                drawLine(
+                    color = Color(0xFF1A1D2C),
+                    start = Offset(0f, centerY - off * SS),
+                    end   = Offset(vw, centerY - off * SS),
+                    strokeWidth = 0.3f
+                )
+            }
+        } else {
+            for (li in -5..5) {
+                drawLine(
+                    color = Color(0xFF191C28),
+                    start = Offset(0f, centerY - li * SS * 2),
+                    end   = Offset(vw, centerY - li * SS * 2),
+                    strokeWidth = 0.5f
+                )
+            }
         }
 
         // ── 오선 그리기 ──
         if (isLandscape) {
-            // 하단 5선: E4(2), G4(4), B4(6), D5(8), F5(10)
+            // 하단 5선: E4(2), G4(4), B4(6), D5(8), F5(10) — 밝고 선명하게
             for (off in listOf(2, 4, 6, 8, 10)) {
                 drawLine(
-                    color = Color(0xFF404570),
+                    color = Color(0xFF4E5480),
                     start = Offset(0f, centerY - off * SS),
                     end   = Offset(vw, centerY - off * SS),
-                    strokeWidth = 1.2f
+                    strokeWidth = 1.4f
                 )
             }
-            // 상단 보조 5선: E5(9), G5(11), B5(13)
+            // 상단 보조 3선: E5(9), G5(11), B5(13) — 약간 연하게
             for (off in listOf(9, 11, 13)) {
                 drawLine(
-                    color = Color(0xFF35386058),
+                    color = Color(0xFF3D4068),
                     start = Offset(0f, centerY - off * SS),
                     end   = Offset(vw, centerY - off * SS),
-                    strokeWidth = 0.9f
+                    strokeWidth = 1.1f
                 )
             }
+            // C3 영역 보조 1선 (매우 낮은 음 참조용)
+            drawLine(
+                color = Color(0xFF2A2E50),
+                start = Offset(0f, centerY + 7 * SS),
+                end   = Offset(vw, centerY + 7 * SS),
+                strokeWidth = 0.8f
+            )
         } else {
             // 세로 모드: 표준 5선
             for (li in -5..5) {
@@ -175,11 +197,11 @@ fun SheetMusicView(
                         end   = Offset(cx + 13f, noteY), strokeWidth = 1.4f)
                 }
 
-                // 음표 머리
+                // 음표 머리 (SS에 비례 — 더 크고 선명하게)
                 val isWhole = step.duration >= 4f
                 val isHalf  = step.duration >= 2f && step.duration < 4f
-                val headW   = if (isLandscape) 8f else 7f
-                val headH   = if (isLandscape) 6f else 5f
+                val headW   = (SS * 1.35f).coerceIn(6f, 12f)
+                val headH   = (SS * 0.95f).coerceIn(4f, 9f)
 
                 if (isWhole || isHalf) {
                     drawOval(color = noteColor,
@@ -194,19 +216,19 @@ fun SheetMusicView(
                         size = Size(headW * 2f, headH * 2f))
                 }
 
-                // 음표 줄기 (stem) — B4(6) 기준으로 위아래 방향 결정
+                // 음표 줄기 (stem) — B4(offset=6) 기준으로 위아래 방향 결정
                 if (!isWhole) {
-                    val stemUp = offset <= 6
-                    val stemLen = if (isLandscape) 28f else 26f
+                    val stemUp  = offset <= 6
+                    val stemLen = (SS * 3.5f).coerceIn(18f, 32f)
+                    val tailLen = (SS * 1.4f).coerceIn(10f, 16f)
                     if (stemUp) {
                         drawLine(color = noteColor,
                             start = Offset(cx + headW - 1f, noteY),
                             end   = Offset(cx + headW - 1f, noteY - stemLen), strokeWidth = 1.5f)
-                        // 8분음표 꼬리
                         if (step.duration < 1f) {
                             drawLine(color = noteColor,
                                 start = Offset(cx + headW - 1f, noteY - stemLen),
-                                end   = Offset(cx + headW + 10f, noteY - stemLen + 12f), strokeWidth = 2f)
+                                end   = Offset(cx + headW + tailLen, noteY - stemLen + tailLen), strokeWidth = 2f)
                         }
                     } else {
                         drawLine(color = noteColor,
@@ -215,7 +237,7 @@ fun SheetMusicView(
                         if (step.duration < 1f) {
                             drawLine(color = noteColor,
                                 start = Offset(cx - headW + 1f, noteY + stemLen),
-                                end   = Offset(cx - headW + 11f, noteY + stemLen - 12f), strokeWidth = 2f)
+                                end   = Offset(cx - headW + tailLen + 1f, noteY + stemLen - tailLen), strokeWidth = 2f)
                         }
                     }
                 }

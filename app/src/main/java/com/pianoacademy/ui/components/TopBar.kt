@@ -61,46 +61,49 @@ fun TopBar(
             .background(Brush.verticalGradient(listOf(Color(0xFF080A10), Color(0xFF0E1018))))
     ) {
         if (isLandscape) {
-            // ── 가로모드: 왼쪽=뷰아이콘 | 중앙=노래제목 | 오른쪽=모드버튼+설정 ──
+            // ── 가로모드: 왼쪽=뷰텍스트 | 중앙=노래제목(크게) | 오른쪽=모드텍스트+설정 ──
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(horizontal = 6.dp, vertical = 2.dp),
+                    .systemBarsPadding()   // 상태바 + 내비게이션 바(홈버튼) 모두 처리
+                    .padding(horizontal = 8.dp, vertical = 3.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // ① 왼쪽: 뷰 모드 아이콘 (📄⬇⬆)
+                // ① 왼쪽: 뷰 모드 (텍스트)
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    listOf(FallingMode.OFF to "📄", FallingMode.DOWN to "⬇", FallingMode.UP to "⬆")
-                        .forEach { (mode, icon) ->
-                            LandscapeModeBtn(icon, mode == fallingMode, false, true, PianoColors.Blue) {
-                                onFallingModeChange(mode)
-                            }
-                        }
+                    LandscapeModeBtn("악보", fallingMode == FallingMode.OFF, false, true, PianoColors.Blue) {
+                        onFallingModeChange(FallingMode.OFF)
+                    }
+                    LandscapeModeBtn("폭포", fallingMode == FallingMode.DOWN, false, true, PianoColors.Blue) {
+                        onFallingModeChange(FallingMode.DOWN)
+                    }
+                    LandscapeModeBtn("역폭", fallingMode == FallingMode.UP, false, true, PianoColors.Blue) {
+                        onFallingModeChange(FallingMode.UP)
+                    }
                 }
 
                 Spacer(Modifier.weight(1f))
 
-                // ② 중앙: 곡 제목 버튼
+                // ② 중앙: 곡 제목 버튼 (크고 선명하게)
                 Row(
                     modifier = Modifier
-                        .widthIn(max = 130.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(Color(0xFF181B28))
-                        .border(1.dp, Color(0xFF282B3E), RoundedCornerShape(6.dp))
+                        .widthIn(max = 220.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFF1A1D2E))
+                        .border(1.dp, Color(0xFF303452), RoundedCornerShape(8.dp))
                         .clickable { onSongPickerOpen() }
-                        .padding(horizontal = 6.dp, vertical = 3.dp),
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
-                    Text(levelCfg?.icon ?: "🎵", fontSize = 9.sp)
+                    Text(levelCfg?.icon ?: "🎵", fontSize = 11.sp)
                     Text(
-                        selectedSong?.title ?: "곡 선택",
-                        fontSize = 9.sp,
-                        fontWeight = if (selectedSong != null) FontWeight.SemiBold else FontWeight.Normal,
+                        selectedSong?.title ?: "곡 선택 ▾",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
                         color = if (selectedSong != null) PianoColors.TextPrimary else PianoColors.TextMuted,
                         maxLines = 1, overflow = TextOverflow.Ellipsis
                     )
@@ -108,46 +111,46 @@ fun TopBar(
 
                 Spacer(Modifier.weight(1f))
 
-                // ③ 오른쪽: 재생 모드 4개 + 구분선 + 설정
+                // ③ 오른쪽: 재생 모드 (텍스트) + 설정
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    LandscapeModeBtn("🎸", playMode == PlayMode.FREE, false, true, PianoColors.Amber) {
+                    LandscapeModeBtn("자유", playMode == PlayMode.FREE, false, true, PianoColors.Amber) {
                         onModeButtonClick(PlayMode.FREE)
                     }
                     LandscapeModeBtn(
-                        icon = if (playMode == PlayMode.AUTO && isPlaying) "■" else "▶",
+                        icon = if (playMode == PlayMode.AUTO && isPlaying) "■정지" else "▶재생",
                         isActive = playMode == PlayMode.AUTO,
                         isPlaying = playMode == PlayMode.AUTO && isPlaying,
                         enabled = canPlay, activeColor = PianoColors.Blue
                     ) { onModeButtonClick(PlayMode.AUTO) }
                     LandscapeModeBtn(
-                        icon = if (playMode == PlayMode.INTERACTIVE && isPlaying) "■" else "✋",
+                        icon = if (playMode == PlayMode.INTERACTIVE && isPlaying) "■정지" else "따라하기",
                         isActive = playMode == PlayMode.INTERACTIVE,
                         isPlaying = playMode == PlayMode.INTERACTIVE && isPlaying,
                         enabled = canPlay, activeColor = PianoColors.Emerald
                     ) { onModeButtonClick(PlayMode.INTERACTIVE) }
                     LandscapeModeBtn(
-                        icon = if (playMode == PlayMode.PRACTICE && isPlaying) "■" else "🎓",
+                        icon = if (playMode == PlayMode.PRACTICE && isPlaying) "■정지" else "혼자하기",
                         isActive = playMode == PlayMode.PRACTICE,
                         isPlaying = playMode == PlayMode.PRACTICE && isPlaying,
                         enabled = canPlay, activeColor = Color(0xFF8B5CF6)
                     ) { onModeButtonClick(PlayMode.PRACTICE) }
 
-                    Box(Modifier.width(1.dp).height(14.dp).background(Color(0xFF282B3E)))
+                    Box(Modifier.width(1.dp).height(18.dp).background(Color(0xFF303452)))
 
-                    // 설정 아이콘 (항상 표시)
+                    // 설정 아이콘
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(5.dp))
+                            .clip(RoundedCornerShape(6.dp))
                             .background(if (showSettings) PianoColors.Amber.copy(0.2f) else Color.Transparent)
                             .clickable { onToggleSettings() }
-                            .padding(5.dp)
+                            .padding(6.dp)
                     ) {
                         Icon(Icons.Default.Settings, "설정",
                             tint = if (showSettings) PianoColors.Amber else PianoColors.TextSecondary,
-                            modifier = Modifier.size(17.dp))
+                            modifier = Modifier.size(20.dp))
                     }
                 }
             }
@@ -392,11 +395,12 @@ private fun LandscapeModeBtn(
             .background(bgBrush)
             .border(1.dp, if (isActive) activeColor.copy(0.6f) else Color(0xFF282B3E), RoundedCornerShape(6.dp))
             .then(if (enabled) Modifier.clickable { onClick() } else Modifier)
-            .padding(horizontal = 5.dp, vertical = 3.dp),
+            .padding(horizontal = 8.dp, vertical = 5.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
-            icon, fontSize = 11.sp,
+            icon, fontSize = 12.sp,
+            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
             color = if (!enabled) PianoColors.TextMuted.copy(0.4f)
                     else if (isActive) Color.White else PianoColors.TextSecondary
         )
