@@ -14,25 +14,20 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import com.pianoacademy.data.*
 import com.pianoacademy.ui.theme.PianoColors
 import com.pianoacademy.viewmodel.PlayMode
 
-// 피아노롤 음표 목록
-// 세로모드: 2옥타브 (C4~B5, 24음)
+// 세로모드 피아노롤: 2옥타브 (C4~B5, 24음)
 private val ROLL_NOTES_FULL = listOf(
     "B5","A#5","A5","G#5","G5","F#5","F5","E5","D#5","D5","C#5","C5",
     "B4","A#4","A4","G#4","G4","F#4","F4","E4","D#4","D4","C#4","C4"
-)
-// 가로모드: 1옥타브 (C5~B5, 12음) — 악보 영역이 크므로 롤은 1옥타브만
-private val ROLL_NOTES_COMPACT = listOf(
-    "B5","A#5","A5","G#5","G5","F#5","F5","E5","D#5","D5","C#5","C5"
 )
 private val BLACK_NOTES_FULL = setOf(
     "A#5","G#5","F#5","D#5","C#5",
     "A#4","G#4","F#4","D#4","C#4"
 )
-private val BLACK_NOTES_COMPACT = setOf("A#5","G#5","F#5","D#5","C#5")
 
 @Composable
 fun SheetMusicView(
@@ -62,72 +57,63 @@ fun SheetMusicView(
         label = "sheetScroll"
     )
 
-    // 가로/세로 음표 목록 선택
-    val rollNotes  = if (isLandscape) ROLL_NOTES_COMPACT  else ROLL_NOTES_FULL
-    val blackNotes = if (isLandscape) BLACK_NOTES_COMPACT else BLACK_NOTES_FULL
-
     Canvas(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF0F111A))
+            .background(Color(0xFF0C0E18))
     ) {
-        val BW   = 110f
-        val vw   = size.width
-        val vh   = size.height
-
+        val BW  = 110f
+        val vw  = size.width
+        val vh  = size.height
         val scrollX = vw / 2f - animBeat * BW
 
         // ══════════════════════════════════════════════════════
-        // 상단: 오선 악보
-        // 가로=50% (2옥타브 표시), 세로=38%
+        // 오선 악보 영역
+        // 가로: 72% (아래 노트큐 바 위), 세로: 100%
         // ══════════════════════════════════════════════════════
-        val staffRatio = if (isLandscape) 0.50f else 0.38f
-        val staffH  = vh * staffRatio
+        val staffRatio = if (isLandscape) 0.72f else 1.0f
+        val staffH = vh * staffRatio
 
-        // 적응형 SS: 가로모드는 C4(0)~B5(13) = 13 steps 을 staffH 안에 담음
-        val SS = if (isLandscape) (staffH / 14f).coerceIn(6f, 11f) else 8.5f
+        // SS: 가로모드는 C4(0)~B5(13) 전체가 staffH 안에 들어오도록 적응
+        val SS = if (isLandscape) (staffH / 14.5f).coerceIn(6f, 12f) else 8.5f
 
-        // 기준점: 가로=아래쪽(C4가 하단), 세로=중앙
-        val centerY = if (isLandscape) staffH * 0.98f else staffH * 0.52f
+        // 기준점: 가로=C4가 하단, 세로=전체 범위 중앙
+        val centerY = if (isLandscape) staffH * 0.96f else staffH * 0.52f
 
+        // ── 배경 가이드 라인 (매우 연함) ──
+        val bgLineRange = if (isLandscape) -1..15 else -5..5
+        for (li in bgLineRange) {
+            val lStep = if (isLandscape) 1 else 2
+            drawLine(
+                color = Color(0xFF14172200),
+                start = Offset(0f, centerY - li * SS * lStep),
+                end   = Offset(vw, centerY - li * SS * lStep),
+                strokeWidth = 0.4f
+            )
+        }
+
+        // ── 오선 그리기 ──
         if (isLandscape) {
-            // ── 가로모드: 2옥타브 두 세트 악보줄 ──
-            // 배경 미세 가이드 라인 (각 오프셋 위치)
-            for (off in 0..14) {
-                drawLine(
-                    color = Color(0xFF191C28),
-                    start = Offset(0f, centerY - off * SS),
-                    end   = Offset(vw, centerY - off * SS),
-                    strokeWidth = 0.4f
-                )
-            }
-            // 하단 5선 (E4=2, G4=4, B4=6, D5=8, F5=10)
+            // 하단 5선: E4(2), G4(4), B4(6), D5(8), F5(10)
             for (off in listOf(2, 4, 6, 8, 10)) {
                 drawLine(
-                    color = Color(0xFF3A3F60),
+                    color = Color(0xFF404570),
                     start = Offset(0f, centerY - off * SS),
                     end   = Offset(vw, centerY - off * SS),
-                    strokeWidth = 1.1f
+                    strokeWidth = 1.2f
                 )
             }
-            // 상단 5선 (E5=9, G5=11, B5=13, + 2선 확장)
+            // 상단 보조 5선: E5(9), G5(11), B5(13)
             for (off in listOf(9, 11, 13)) {
                 drawLine(
-                    color = Color(0xFF3A3F60),
+                    color = Color(0xFF35386058),
                     start = Offset(0f, centerY - off * SS),
                     end   = Offset(vw, centerY - off * SS),
-                    strokeWidth = 1.1f
+                    strokeWidth = 0.9f
                 )
             }
-            // 옥타브 구분 표시 (C5=7 위치에 가는 구분선)
-            drawLine(
-                color = Color(0xFF2A3068),
-                start = Offset(vw * 0.02f, centerY - 7.5f * SS),
-                end   = Offset(vw * 0.98f, centerY - 7.5f * SS),
-                strokeWidth = 0.6f
-            )
         } else {
-            // ── 세로모드: 기존 단일 5선 ──
+            // 세로 모드: 표준 5선
             for (li in -5..5) {
                 drawLine(
                     color = Color(0xFF191C28),
@@ -146,11 +132,12 @@ fun SheetMusicView(
             }
         }
 
+        // ── 음표 그리기 ──
         var xAcc = 0f
         song.steps.forEachIndexed { idx, step ->
-            val noteW   = step.duration * BW
-            val sx      = xAcc + scrollX
-            val cx      = sx + noteW / 2f
+            val noteW = step.duration * BW
+            val sx    = xAcc + scrollX
+            val cx    = sx + noteW / 2f
             xAcc += noteW
 
             if (cx < -noteW || cx > vw + noteW) return@forEachIndexed
@@ -159,171 +146,253 @@ fun SheetMusicView(
             val isCurrent = idx == stepIndex
 
             val noteColor = when {
-                isPast    -> Color(0xFF282C3E)
+                isPast    -> Color(0xFF2A2E42)
                 isCurrent -> if (playMode == PlayMode.AUTO) PianoColors.Blue else PianoColors.Emerald
-                else      -> Color(0xFF4A5270)
+                else      -> Color(0xFF505880)
             }
 
             step.keys.forEach { note ->
                 val offset = NOTE_OFFSETS[note] ?: 0
                 val noteY  = centerY - offset * SS
 
-                if (note == "C4") {
-                    drawLine(color = noteColor.copy(alpha = 0.65f),
-                        start = Offset(cx - 12f, noteY), end = Offset(cx + 12f, noteY), strokeWidth = 1.4f)
-                }
-                if (note == "C3") {
-                    for (li in 0..2) {
-                        drawLine(color = noteColor.copy(alpha = 0.5f),
-                            start = Offset(cx - 12f, noteY + li * SS),
-                            end   = Offset(cx + 12f, noteY + li * SS), strokeWidth = 1.2f)
-                    }
-                }
-                if (note == "C5") {
-                    drawLine(color = noteColor.copy(alpha = 0.65f),
-                        start = Offset(cx - 12f, noteY), end = Offset(cx + 12f, noteY), strokeWidth = 1.4f)
-                }
-
+                // 임시표 (#) 기호
                 if (note.contains("#")) {
-                    drawLine(color = noteColor, start = Offset(cx - 18f, noteY - 9f),
-                        end = Offset(cx - 18f, noteY + 6f), strokeWidth = 1.5f)
-                    drawLine(color = noteColor, start = Offset(cx - 21f, noteY - 5f),
-                        end = Offset(cx - 14f, noteY - 5f), strokeWidth = 1.1f)
-                    drawLine(color = noteColor, start = Offset(cx - 21f, noteY + 1f),
-                        end = Offset(cx - 14f, noteY + 1f), strokeWidth = 1.1f)
+                    drawLine(color = noteColor,
+                        start = Offset(cx - 18f, noteY - 9f),
+                        end   = Offset(cx - 18f, noteY + 6f), strokeWidth = 1.5f)
+                    drawLine(color = noteColor,
+                        start = Offset(cx - 21f, noteY - 5f),
+                        end   = Offset(cx - 14f, noteY - 5f), strokeWidth = 1.1f)
+                    drawLine(color = noteColor,
+                        start = Offset(cx - 21f, noteY + 1f),
+                        end   = Offset(cx - 14f, noteY + 1f), strokeWidth = 1.1f)
                 }
 
+                // C4 / C5 덧줄 (ledger line)
+                if (note == "C4" || note == "C5") {
+                    drawLine(color = noteColor.copy(alpha = 0.7f),
+                        start = Offset(cx - 13f, noteY),
+                        end   = Offset(cx + 13f, noteY), strokeWidth = 1.4f)
+                }
+
+                // 음표 머리
                 val isWhole = step.duration >= 4f
                 val isHalf  = step.duration >= 2f && step.duration < 4f
+                val headW   = if (isLandscape) 8f else 7f
+                val headH   = if (isLandscape) 6f else 5f
 
                 if (isWhole || isHalf) {
-                    drawOval(color = noteColor, topLeft = Offset(cx - 7f, noteY - 5f), size = Size(14f, 10f))
-                    drawOval(color = Color(0xFF0F111A), topLeft = Offset(cx - 4f, noteY - 3f), size = Size(8f, 6f))
+                    drawOval(color = noteColor,
+                        topLeft = Offset(cx - headW, noteY - headH),
+                        size = Size(headW * 2f, headH * 2f))
+                    drawOval(color = Color(0xFF0C0E18),
+                        topLeft = Offset(cx - headW * 0.5f, noteY - headH * 0.5f),
+                        size = Size(headW, headH))
                 } else {
-                    drawOval(color = noteColor, topLeft = Offset(cx - 7f, noteY - 5f), size = Size(14f, 10f))
+                    drawOval(color = noteColor,
+                        topLeft = Offset(cx - headW, noteY - headH),
+                        size = Size(headW * 2f, headH * 2f))
                 }
 
+                // 음표 줄기 (stem) — B4(6) 기준으로 위아래 방향 결정
                 if (!isWhole) {
-                    val stemUp = offset <= 0
+                    val stemUp = offset <= 6
+                    val stemLen = if (isLandscape) 28f else 26f
                     if (stemUp) {
                         drawLine(color = noteColor,
-                            start = Offset(cx + 6f, noteY),
-                            end   = Offset(cx + 6f, noteY - 26f), strokeWidth = 1.5f)
+                            start = Offset(cx + headW - 1f, noteY),
+                            end   = Offset(cx + headW - 1f, noteY - stemLen), strokeWidth = 1.5f)
+                        // 8분음표 꼬리
                         if (step.duration < 1f) {
                             drawLine(color = noteColor,
-                                start = Offset(cx + 6f, noteY - 26f),
-                                end   = Offset(cx + 16f, noteY - 14f), strokeWidth = 2f)
+                                start = Offset(cx + headW - 1f, noteY - stemLen),
+                                end   = Offset(cx + headW + 10f, noteY - stemLen + 12f), strokeWidth = 2f)
                         }
                     } else {
                         drawLine(color = noteColor,
-                            start = Offset(cx - 6f, noteY),
-                            end   = Offset(cx - 6f, noteY + 26f), strokeWidth = 1.5f)
+                            start = Offset(cx - headW + 1f, noteY),
+                            end   = Offset(cx - headW + 1f, noteY + stemLen), strokeWidth = 1.5f)
                         if (step.duration < 1f) {
                             drawLine(color = noteColor,
-                                start = Offset(cx - 6f, noteY + 26f),
-                                end   = Offset(cx + 4f, noteY + 14f), strokeWidth = 2f)
+                                start = Offset(cx - headW + 1f, noteY + stemLen),
+                                end   = Offset(cx - headW + 11f, noteY + stemLen - 12f), strokeWidth = 2f)
                         }
                     }
                 }
             }
         }
 
-        drawLine(color = Color(0xFF1E2235),
+        // ── 커서 라인 ──
+        drawLine(color = PianoColors.Amber.copy(alpha = 0.12f),
+            start = Offset(vw / 2f, 0f), end = Offset(vw / 2f, staffH), strokeWidth = 22f)
+        drawLine(color = PianoColors.Amber.copy(alpha = 0.6f),
+            start = Offset(vw / 2f, 0f), end = Offset(vw / 2f, staffH), strokeWidth = 2.5f)
+        drawLine(color = PianoColors.Amber,
+            start = Offset(vw / 2f, 0f), end = Offset(vw / 2f, staffH), strokeWidth = 1.2f)
+
+        // ══════════════════════════════════════════════════════
+        // 하단: 가로모드=노트큐 바 / 세로모드=피아노롤
+        // ══════════════════════════════════════════════════════
+        val bottomTop = staffH + 1f
+        val bottomH   = vh - bottomTop
+
+        drawLine(color = Color(0xFF252840),
             start = Offset(0f, staffH), end = Offset(vw, staffH), strokeWidth = 1f)
 
-        // ══════════════════════════════════════════════════════
-        // 하단: 피아노롤 (가로=1옥타브 C5~B5, 세로=2옥타브 C4~B5)
-        // ══════════════════════════════════════════════════════
-        val rollTop = staffH + 1f
-        val rollH   = vh - rollTop
-        val rowH    = rollH / rollNotes.size
+        if (isLandscape) {
+            // ── 노트 큐 바 (HTML 스타일) ──
+            drawRect(Color(0xFF090B14), Offset(0f, bottomTop), Size(vw, bottomH))
 
-        // 균일한 다크 배경 (줄무늬 없음)
-        drawRect(
-            color   = Color(0xFF0B0D17),
-            topLeft = Offset(0f, rollTop),
-            size    = Size(vw, rollH)
-        )
+            val cardPad = 2.5f
+            val cardH   = bottomH - cardPad * 2
 
-        // 행 구분선 (매우 연함) + 옥타브 경계선
-        rollNotes.forEachIndexed { i, note ->
-            val y = rollTop + i * rowH
-            drawLine(
-                color = Color(0xFF16192A),
-                start = Offset(0f, y),
-                end   = Offset(vw, y),
-                strokeWidth = 0.5f
-            )
-            if (note == "C5" || note == "C4") {
-                drawLine(
-                    color = Color(0xFF2D3870),
-                    start = Offset(0f, y),
-                    end   = Offset(vw, y),
-                    strokeWidth = 1.4f
-                )
-            }
-        }
+            var qx = 0f
+            song.steps.forEachIndexed { idx, step ->
+                val noteW = step.duration * BW
+                val sx    = qx + scrollX
+                qx += noteW
 
-        // 옥타브 레이블
-        rollNotes.forEachIndexed { i, note ->
-            if (note == "C5" || note == "C4") {
-                val y = rollTop + i * rowH
-                drawIntoCanvas { canvas ->
-                    val paint = android.graphics.Paint().apply {
-                        color     = 0xFF3A4580.toInt()
-                        textSize  = (rowH * 0.85f).coerceIn(6f, 11f)
-                        isAntiAlias = true
-                    }
-                    canvas.nativeCanvas.drawText(note, 3f, y + rowH * 0.78f, paint)
-                }
-            }
-        }
+                if (sx + noteW < -10f || sx > vw + 10f) return@forEachIndexed
 
-        // 음표 블록
-        var bx = 0f
-        song.steps.forEachIndexed { idx, step ->
-            val noteW   = step.duration * BW
-            val sx      = bx + scrollX
-            bx += noteW
+                val isPast    = idx < stepIndex
+                val isCurrent = idx == stepIndex
 
-            if (sx + noteW < 0 || sx > vw) return@forEachIndexed
-
-            val isPast    = idx < stepIndex
-            val isCurrent = idx == stepIndex
-
-            step.keys.forEach { note ->
-                val rowIdx = rollNotes.indexOf(note)
-                if (rowIdx < 0) return@forEach
-
-                val color = when {
-                    isPast    -> Color(0xFF252840).copy(alpha = 0.5f)
+                val bgColor = when {
                     isCurrent -> if (playMode == PlayMode.AUTO) PianoColors.Blue else PianoColors.Emerald
-                    else      -> PianoColors.Amber.copy(alpha = 0.85f)
+                    isPast    -> Color(0xFF111420)
+                    else      -> Color(0xFF181B2C)
                 }
-                val y = rollTop + rowIdx * rowH
+                val textAlpha = when {
+                    isCurrent -> 1.0f
+                    isPast    -> 0.3f
+                    else      -> 0.65f
+                }
+                val textArgb = when {
+                    isCurrent -> Color.White.toArgb()
+                    isPast    -> Color(0xFF4A4E6A).toArgb()
+                    else      -> Color(0xFF8890B8).toArgb()
+                }
+
+                // 카드 배경
                 drawRoundRect(
-                    color       = color,
-                    topLeft     = Offset(sx + 1.5f, y + 1.5f),
-                    size        = Size((noteW - 3f).coerceAtLeast(5f), rowH - 3f),
-                    cornerRadius = CornerRadius(3f, 3f)
+                    color       = bgColor,
+                    topLeft     = Offset(sx + cardPad, bottomTop + cardPad),
+                    size        = Size((noteW - cardPad * 2).coerceAtLeast(4f), cardH),
+                    cornerRadius = CornerRadius(6f, 6f)
                 )
-                if (isCurrent) {
+
+                // 텍스트 (너비가 충분할 때만)
+                if (noteW > 22f) {
+                    val firstNote = step.keys.firstOrNull() ?: return@forEachIndexed
+                    val regex = Regex("^([A-G])(#?)([0-9])$")
+                    val m = regex.find(firstNote) ?: return@forEachIndexed
+                    val korName = KOREAN_NAMES[m.groupValues[1]] ?: m.groupValues[1]
+                    val sharp   = if (m.groupValues[2].isNotEmpty()) "#" else ""
+                    val oct     = m.groupValues[3]
+                    val label   = "$korName$sharp$oct ♩"
+
+                    drawIntoCanvas { canvas ->
+                        val paint = android.graphics.Paint().apply {
+                            color     = textArgb
+                            textSize  = (cardH * 0.42f).coerceIn(9f, 15f)
+                            isAntiAlias = true
+                            textAlign   = android.graphics.Paint.Align.CENTER
+                            typeface    = android.graphics.Typeface.DEFAULT_BOLD
+                        }
+                        canvas.nativeCanvas.drawText(
+                            label,
+                            sx + noteW / 2f,
+                            bottomTop + bottomH * 0.63f,
+                            paint
+                        )
+                    }
+                }
+            }
+
+            // 큐 커서 라인
+            drawLine(color = PianoColors.Amber.copy(alpha = 0.5f),
+                start = Offset(vw / 2f, bottomTop + 3f),
+                end   = Offset(vw / 2f, vh - 3f),
+                strokeWidth = 2f)
+
+        } else {
+            // ── 세로모드: 피아노롤 ──
+            drawRect(Color(0xFF0B0D17), Offset(0f, bottomTop), Size(vw, bottomH))
+
+            val rowH = bottomH / ROLL_NOTES_FULL.size
+
+            // 행 구분선 + 옥타브 경계
+            ROLL_NOTES_FULL.forEachIndexed { i, note ->
+                val y = bottomTop + i * rowH
+                drawLine(color = Color(0xFF16192A),
+                    start = Offset(0f, y), end = Offset(vw, y), strokeWidth = 0.5f)
+                if (note == "C5" || note == "C4") {
+                    drawLine(color = Color(0xFF2D3870),
+                        start = Offset(0f, y), end = Offset(vw, y), strokeWidth = 1.4f)
+                }
+            }
+
+            // 옥타브 레이블
+            ROLL_NOTES_FULL.forEachIndexed { i, note ->
+                if (note == "C5" || note == "C4") {
+                    val y = bottomTop + i * rowH
+                    drawIntoCanvas { canvas ->
+                        val paint = android.graphics.Paint().apply {
+                            color = 0xFF3A4580.toInt()
+                            textSize = (rowH * 0.85f).coerceIn(6f, 11f)
+                            isAntiAlias = true
+                        }
+                        canvas.nativeCanvas.drawText(note, 3f, y + rowH * 0.78f, paint)
+                    }
+                }
+            }
+
+            // 음표 블록
+            var bx = 0f
+            song.steps.forEachIndexed { idx, step ->
+                val noteW = step.duration * BW
+                val sx    = bx + scrollX
+                bx += noteW
+
+                if (sx + noteW < 0 || sx > vw) return@forEachIndexed
+
+                val isPast    = idx < stepIndex
+                val isCurrent = idx == stepIndex
+
+                step.keys.forEach { note ->
+                    val rowIdx = ROLL_NOTES_FULL.indexOf(note)
+                    if (rowIdx < 0) return@forEach
+
+                    val color = when {
+                        isPast    -> Color(0xFF252840).copy(alpha = 0.5f)
+                        isCurrent -> if (playMode == PlayMode.AUTO) PianoColors.Blue else PianoColors.Emerald
+                        else      -> PianoColors.Amber.copy(alpha = 0.85f)
+                    }
+                    val y = bottomTop + rowIdx * rowH
                     drawRoundRect(
-                        color       = color.copy(alpha = 1f),
-                        topLeft     = Offset(sx + 1.5f, y + 1.5f),
-                        size        = Size((noteW - 3f).coerceAtLeast(5f), 2.5f),
+                        color        = color,
+                        topLeft      = Offset(sx + 1.5f, y + 1.5f),
+                        size         = Size((noteW - 3f).coerceAtLeast(5f), rowH - 3f),
                         cornerRadius = CornerRadius(3f, 3f)
                     )
+                    if (isCurrent) {
+                        drawRoundRect(
+                            color        = color.copy(alpha = 1f),
+                            topLeft      = Offset(sx + 1.5f, y + 1.5f),
+                            size         = Size((noteW - 3f).coerceAtLeast(5f), 2.5f),
+                            cornerRadius = CornerRadius(3f, 3f)
+                        )
+                    }
                 }
             }
-        }
 
-        // 커서 라인
-        drawLine(color = PianoColors.Amber.copy(alpha = 0.15f),
-            start = Offset(vw / 2f, 0f), end = Offset(vw / 2f, vh), strokeWidth = 18f)
-        drawLine(color = PianoColors.Amber.copy(alpha = 0.55f),
-            start = Offset(vw / 2f, 0f), end = Offset(vw / 2f, vh), strokeWidth = 3f)
-        drawLine(color = PianoColors.Amber,
-            start = Offset(vw / 2f, 0f), end = Offset(vw / 2f, vh), strokeWidth = 1.5f)
+            // 세로모드 커서 라인 (롤 영역)
+            drawLine(color = PianoColors.Amber.copy(alpha = 0.15f),
+                start = Offset(vw / 2f, bottomTop), end = Offset(vw / 2f, vh), strokeWidth = 18f)
+            drawLine(color = PianoColors.Amber.copy(alpha = 0.55f),
+                start = Offset(vw / 2f, bottomTop), end = Offset(vw / 2f, vh), strokeWidth = 3f)
+            drawLine(color = PianoColors.Amber,
+                start = Offset(vw / 2f, bottomTop), end = Offset(vw / 2f, vh), strokeWidth = 1.5f)
+        }
     }
 }
