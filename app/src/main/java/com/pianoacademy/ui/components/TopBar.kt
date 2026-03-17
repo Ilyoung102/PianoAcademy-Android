@@ -59,6 +59,7 @@ fun TopBar(
     onShiftKeyboard: (Int) -> Unit = {},
     isSustainPedal: Boolean = false,
     onToggleSustainPedal: () -> Unit = {},
+    onLoadMdFile: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val levelCfg = LEVEL_CONFIG[selectedLevel]
@@ -158,6 +159,19 @@ fun TopBar(
                         enabled = true,
                         activeColor = PianoColors.Amber
                     ) { onSongPickerOpen() }
+
+                    // MD 파일 로드 아이콘
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Brush.verticalGradient(listOf(Color(0xFF1C1F2E), Color(0xFF181B28))))
+                            .border(1.dp, Color(0xFF282B3E), RoundedCornerShape(6.dp))
+                            .clickable { onLoadMdFile() }
+                            .padding(horizontal = 7.dp, vertical = 5.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("📄", fontSize = 13.sp)
+                    }
                 }
 
                 Spacer(Modifier.weight(1f))

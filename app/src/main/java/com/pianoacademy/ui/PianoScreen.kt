@@ -1,5 +1,7 @@
 package com.pianoacademy.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
@@ -7,9 +9,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.pianoacademy.data.parseMdSongs
 import com.pianoacademy.ui.components.*
 import com.pianoacademy.viewmodel.*
 
@@ -19,6 +23,22 @@ fun PianoScreen(
     modifier: Modifier = Modifier
 ) {
     val state by vm.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    // MD 파일 로드 런처
+    val mdFileLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri?.let {
+            try {
+                val content = context.contentResolver.openInputStream(uri)?.bufferedReader()?.readText()
+                content?.let { text ->
+                    val songs = parseMdSongs(text)
+                    if (songs.isNotEmpty()) vm.loadCustomSongs(songs)
+                }
+            } catch (_: Exception) {}
+        }
+    }
 
     Box(
         modifier = modifier
@@ -57,7 +77,8 @@ fun PianoScreen(
                 keyOctaveShift = state.keyOctaveShift,
                 onShiftKeyboard = { vm.shiftKeyboard(it) },
                 isSustainPedal = state.isSustainPedal,
-                onToggleSustainPedal = { vm.toggleSustainPedal() }
+                onToggleSustainPedal = { vm.toggleSustainPedal() },
+                onLoadMdFile = { mdFileLauncher.launch(arrayOf("text/*", "text/plain", "text/markdown")) }
             )
 
             ScoreArea(state, modifier = Modifier.weight(1f))
@@ -78,7 +99,7 @@ fun PianoScreen(
                 onNoteOff = { note, natural -> vm.releaseKey(note, natural) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(if (state.isLandscape) 144.dp else 195.dp)
+                    .height(if (state.isLandscape) 173.dp else 234.dp)
             )
         }
 
@@ -106,6 +127,7 @@ fun PianoScreen(
             selectedLevel = state.selectedLevel,
             selectedSong = state.selectedSong,
             bestScores = state.bestScores,
+            customSongs = state.customSongs,
             onLevelSelect = { vm.selectLevel(it) },
             onSongSelect = { song ->
                 vm.selectSong(song)

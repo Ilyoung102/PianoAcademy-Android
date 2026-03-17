@@ -24,6 +24,7 @@ fun SongPickerSheet(
     selectedLevel: Int,
     selectedSong: Song?,
     bestScores: Map<String, Int>,
+    customSongs: List<Song> = emptyList(),
     onLevelSelect: (Int) -> Unit,
     onSongSelect: (Song) -> Unit,
     onDismiss: () -> Unit
@@ -147,7 +148,7 @@ fun SongPickerSheet(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 400.dp),
+                    .heightIn(max = 440.dp),
                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
@@ -159,102 +160,145 @@ fun SongPickerSheet(
                         when { it >= 95 -> 3; it >= 75 -> 2; it >= 50 -> 1; else -> 0 }
                     } ?: -1
 
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(
-                                if (isSelected)
-                                    Brush.horizontalGradient(
-                                        listOf(levelColor.copy(alpha = 0.28f), levelColor.copy(alpha = 0.10f))
-                                    )
-                                else Brush.horizontalGradient(
-                                    listOf(Color(0xFF191C28), Color(0xFF161924))
-                                )
-                            )
-                            .border(
-                                width = if (isSelected) 1.dp else 0.5.dp,
-                                color = if (isSelected) levelColor.copy(alpha = 0.7f) else Color(0xFF222535),
-                                shape = RoundedCornerShape(10.dp)
-                            )
-                            .clickable {
-                                onSongSelect(song)
-                                onDismiss()
-                            }
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // 번호 배지
-                        Box(
+                    SongRow(
+                        song = song,
+                        index = songs.indexOf(song) + 1,
+                        isSelected = isSelected,
+                        accentColor = levelColor,
+                        stars = stars,
+                        best = best,
+                        onSelect = { onSongSelect(song); onDismiss() }
+                    )
+                }
+
+                // ── MD 불러온 커스텀 곡 섹션 ──────────────────────
+                if (customSongs.isNotEmpty()) {
+                    item {
+                        Spacer(Modifier.height(6.dp))
+                        Row(
                             modifier = Modifier
-                                .size(26.dp)
-                                .clip(RoundedCornerShape(7.dp))
-                                .background(
-                                    if (isSelected) levelColor.copy(alpha = 0.3f)
-                                    else Color(0xFF222535)
-                                ),
-                            contentAlignment = Alignment.Center
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color(0xFF1A1D2A))
+                                .padding(horizontal = 10.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
+                            Text("📄", fontSize = 12.sp)
                             Text(
-                                "${songs.indexOf(song) + 1}",
+                                "불러온 악보 (${customSongs.size}곡)",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isSelected) levelColor else PianoColors.TextMuted
+                                color = Color(0xFF8B7CF6)
                             )
                         }
-
-                        Spacer(Modifier.width(10.dp))
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                song.title,
-                                fontSize = 12.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isSelected) levelColor else PianoColors.TextPrimary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("♩=${song.tempo}", fontSize = 9.sp, color = PianoColors.TextMuted)
-                                Text("·", fontSize = 9.sp, color = PianoColors.TextMuted)
-                                Text("${song.steps.size}음", fontSize = 9.sp, color = PianoColors.TextMuted)
-                            }
-                        }
-
-                        Spacer(Modifier.width(8.dp))
-
-                        // 별점 / NEW
-                        if (stars >= 0) {
-                            Column(horizontalAlignment = Alignment.End) {
-                                Row {
-                                    repeat(3) { i ->
-                                        Text(
-                                            if (i < stars) "★" else "☆",
-                                            fontSize = 10.sp,
-                                            color = if (i < stars) PianoColors.Amber else Color(0xFF333645)
-                                        )
-                                    }
-                                }
-                                Text("$best%", fontSize = 9.sp, color = PianoColors.TextMuted)
-                            }
-                        } else {
-                            Text(
-                                "NEW",
-                                fontSize = 8.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = PianoColors.Emerald.copy(alpha = 0.7f),
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(PianoColors.Emerald.copy(alpha = 0.15f))
-                                    .padding(horizontal = 5.dp, vertical = 2.dp)
-                            )
-                        }
+                        Spacer(Modifier.height(4.dp))
+                    }
+                    items(customSongs) { song ->
+                        val isSelected = song.id == selectedSong?.id
+                        SongRow(
+                            song = song,
+                            index = customSongs.indexOf(song) + 1,
+                            isSelected = isSelected,
+                            accentColor = Color(0xFF8B7CF6),
+                            stars = -1,
+                            best = null,
+                            onSelect = { onSongSelect(song); onDismiss() }
+                        )
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun SongRow(
+    song: Song,
+    index: Int,
+    isSelected: Boolean,
+    accentColor: Color,
+    stars: Int,
+    best: Int?,
+    onSelect: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(
+                if (isSelected)
+                    Brush.horizontalGradient(listOf(accentColor.copy(alpha = 0.28f), accentColor.copy(alpha = 0.10f)))
+                else
+                    Brush.horizontalGradient(listOf(Color(0xFF191C28), Color(0xFF161924)))
+            )
+            .border(
+                width = if (isSelected) 1.dp else 0.5.dp,
+                color = if (isSelected) accentColor.copy(alpha = 0.7f) else Color(0xFF222535),
+                shape = RoundedCornerShape(10.dp)
+            )
+            .clickable { onSelect() }
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(26.dp)
+                .clip(RoundedCornerShape(7.dp))
+                .background(if (isSelected) accentColor.copy(alpha = 0.3f) else Color(0xFF222535)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                "$index",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (isSelected) accentColor else PianoColors.TextMuted
+            )
+        }
+        Spacer(Modifier.width(10.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                song.title,
+                fontSize = 12.sp,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                color = if (isSelected) accentColor else PianoColors.TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("♩=${song.tempo}", fontSize = 9.sp, color = PianoColors.TextMuted)
+                Text("·", fontSize = 9.sp, color = PianoColors.TextMuted)
+                Text("${song.steps.size}음", fontSize = 9.sp, color = PianoColors.TextMuted)
+            }
+        }
+        Spacer(Modifier.width(8.dp))
+        if (stars >= 0) {
+            Column(horizontalAlignment = Alignment.End) {
+                Row {
+                    repeat(3) { i ->
+                        Text(
+                            if (i < stars) "★" else "☆",
+                            fontSize = 10.sp,
+                            color = if (i < stars) PianoColors.Amber else Color(0xFF333645)
+                        )
+                    }
+                }
+                Text("$best%", fontSize = 9.sp, color = PianoColors.TextMuted)
+            }
+        } else {
+            Text(
+                "NEW",
+                fontSize = 8.sp,
+                fontWeight = FontWeight.Bold,
+                color = PianoColors.Emerald.copy(alpha = 0.7f),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(PianoColors.Emerald.copy(alpha = 0.15f))
+                    .padding(horizontal = 5.dp, vertical = 2.dp)
+            )
         }
     }
 }

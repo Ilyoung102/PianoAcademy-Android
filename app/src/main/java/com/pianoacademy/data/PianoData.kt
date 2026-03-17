@@ -128,6 +128,49 @@ data class Song(
     val steps: List<SongStep>
 )
 
+// 노트 이름의 옥타브를 shift만큼 이동 (예: "C4", +1 → "C5")
+fun shiftNote(note: String, octaveShift: Int): String {
+    if (octaveShift == 0) return note
+    val regex = Regex("^([A-G]#?)([0-9])$")
+    val match = regex.find(note) ?: return note
+    val name = match.groupValues[1]
+    val octave = match.groupValues[2].toInt() + octaveShift
+    if (octave < 1 || octave > 8) return note
+    return "$name$octave"
+}
+
+// MD 파일에서 곡 파싱
+// 형식:
+//   # 곡 제목
+//   tempo: 120
+//   C4:1,D4:1,E4:1...
+fun parseMdSongs(content: String): List<Song> {
+    val result = mutableListOf<Song>()
+    val blocks = content.split(Regex("(?m)^#+ ")).filter { it.isNotBlank() }
+    blocks.forEachIndexed { idx, block ->
+        val lines = block.trim().lines().filter { it.isNotBlank() }
+        if (lines.isEmpty()) return@forEachIndexed
+        val title = lines[0].trim().trimEnd()
+        var tempo = 100
+        var noteLine = ""
+        for (line in lines.drop(1)) {
+            val stripped = line.trim()
+            if (stripped.startsWith("tempo", ignoreCase = true)) {
+                tempo = stripped.replace(Regex("[^0-9]"), "").toIntOrNull() ?: 100
+            } else if (stripped.contains(Regex("[A-G][#b]?[0-9]:[0-9]"))) {
+                noteLine = stripped
+            }
+        }
+        if (title.isNotEmpty() && noteLine.isNotEmpty()) {
+            val steps = parseSongSteps(noteLine)
+            if (steps.isNotEmpty()) {
+                result.add(Song("custom_${idx}_${title.hashCode()}", 0, title, tempo, steps))
+            }
+        }
+    }
+    return result
+}
+
 fun getNoteSymbol(d: Float): String = when {
     d >= 4f  -> "𝅝"
     d >= 3f  -> "𝅗𝅥."

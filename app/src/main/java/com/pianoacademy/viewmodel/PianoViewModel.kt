@@ -36,7 +36,8 @@ data class PianoUiState(
     val bestScores: Map<String, Int> = emptyMap(),
     val wrongCount: Int = 0,
     val keyOctaveShift: Int = 0,
-    val isSustainPedal: Boolean = false
+    val isSustainPedal: Boolean = false,
+    val customSongs: List<Song> = emptyList()
 )
 
 data class GameResult(
@@ -104,7 +105,8 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
         val song = state.selectedSong ?: return
         if (!state.waitingForInput) return
         val currentStep = song.steps.getOrNull(state.stepIndex) ?: return
-        val expectedKeys = currentStep.keys.toSet()
+        val shift = state.keyOctaveShift
+        val expectedKeys = currentStep.keys.map { shiftNote(it, shift) }.toSet()
 
         if (expectedKeys.contains(pressedNote)) {
             _uiState.update { it.copy(
@@ -128,9 +130,10 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
         val nextIdx = state.stepIndex + 1
         if (nextIdx >= song.steps.size) { finishSong(); return }
         val nextStep = song.steps[nextIdx]
+        val shift = state.keyOctaveShift
         _uiState.update { it.copy(
             stepIndex = nextIdx,
-            highlightKeys = nextStep.keys.toSet(),
+            highlightKeys = nextStep.keys.map { shiftNote(it, shift) }.toSet(),
             waitingForInput = true,
             correctKeys = emptySet(),
             wrongKeys = emptySet()
@@ -143,21 +146,21 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
             selectedSong = song,
             playMode = PlayMode.AUTO,
             isPlaying = true,
-            stepIndex = 0,
-            keyOctaveShift = 0   // 재생 시 표준 건반으로 초기화
+            stepIndex = 0
         )}
         autoPlayJob = viewModelScope.launch {
             val tempoMul = _uiState.value.tempoMultiplier
+            val shift = _uiState.value.keyOctaveShift  // 시작 시 옥타브 캡처
             for ((index, step) in song.steps.withIndex()) {
                 if (!isActive) break
                 val beatMs = (60000.0 / song.tempo / tempoMul).toLong()
                 val durationMs = (step.duration * beatMs).toLong()
-                _uiState.update { it.copy(stepIndex = index, activeKeys = step.keys.toSet()) }
-                step.keys.forEach { note ->
-                    NOTE_MAP[note]?.let { nk -> soundEngine.playNote(note, nk.frequency) }
+                val shiftedKeys = step.keys.map { shiftNote(it, shift) }
+                _uiState.update { it.copy(stepIndex = index, activeKeys = shiftedKeys.toSet()) }
+                shiftedKeys.forEach { note ->
+                    soundEngine.playNote(note, noteToFrequency(note))
                 }
                 delay(durationMs.coerceAtLeast(60))
-                // 다음 음표로 바로 이어짐 (갭 없음)
             }
             _uiState.update { it.copy(activeKeys = emptySet()) }
             finishAutoPlay()
@@ -168,17 +171,17 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
         stopPlayback()
         wrongCount = 0
         val firstStep = song.steps.firstOrNull()
+        val shift = _uiState.value.keyOctaveShift  // 현재 옥타브 유지
         _uiState.update { it.copy(
             selectedSong = song,
             playMode = mode,
             isPlaying = true,
             stepIndex = 0,
             wrongCount = 0,
-            highlightKeys = firstStep?.keys?.toSet() ?: emptySet(),
+            highlightKeys = firstStep?.keys?.map { shiftNote(it, shift) }?.toSet() ?: emptySet(),
             waitingForInput = true,
             correctKeys = emptySet(),
-            wrongKeys = emptySet(),
-            keyOctaveShift = 0   // 재생 시 표준 건반으로 초기화
+            wrongKeys = emptySet()
         )}
     }
 
@@ -263,6 +266,7 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
         _uiState.update { it.copy(selectedSong = song, stepIndex = 0) }
     }
 
+    fun loadCustomSongs(songs: List<Song>) { _uiState.update { it.copy(customSongs = songs) } }
     fun setFallingMode(mode: FallingMode) { _uiState.update { it.copy(fallingMode = mode) } }
     fun setSoundMode(mode: SoundMode) { soundEngine.soundMode = mode; _uiState.update { it.copy(soundMode = mode) } }
     fun setVolume(v: Float) { soundEngine.setVolume(v); _uiState.update { it.copy(volume = v) } }
