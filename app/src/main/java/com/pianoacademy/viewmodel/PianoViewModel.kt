@@ -27,7 +27,7 @@ data class PianoUiState(
     val soundMode: SoundMode = SoundMode.GRAND,
     val volume: Float = 1.0f,
     val tempoMultiplier: Float = 1.0f,
-    val showNoteNames: Boolean = true,
+    val noteNameMode: NoteNameMode = NoteNameMode.SOLFEGE,
     val showNextHint: Boolean = true,
     val showSettings: Boolean = false,
     val showSongPicker: Boolean = false,
@@ -271,7 +271,7 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
     fun setSoundMode(mode: SoundMode) { soundEngine.soundMode = mode; _uiState.update { it.copy(soundMode = mode) } }
     fun setVolume(v: Float) { soundEngine.setVolume(v); _uiState.update { it.copy(volume = v) } }
     fun setTempoMultiplier(t: Float) { _uiState.update { it.copy(tempoMultiplier = t) } }
-    fun toggleShowNoteNames() { _uiState.update { it.copy(showNoteNames = !it.showNoteNames) } }
+    fun setNoteNameMode(mode: NoteNameMode) { _uiState.update { it.copy(noteNameMode = mode) } }
     fun toggleShowNextHint() { _uiState.update { it.copy(showNextHint = !it.showNextHint) } }
     fun toggleSettings() { _uiState.update { it.copy(showSettings = !it.showSettings) } }
     fun toggleSongPicker() { _uiState.update { it.copy(showSongPicker = !it.showSongPicker) } }

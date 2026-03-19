@@ -28,6 +28,7 @@ import com.pianoacademy.data.LEVEL_CONFIG
 import com.pianoacademy.data.Song
 import com.pianoacademy.ui.theme.PianoColors
 import com.pianoacademy.viewmodel.FallingMode
+import com.pianoacademy.data.NoteNameMode
 import com.pianoacademy.viewmodel.PlayMode
 
 @Composable
@@ -41,7 +42,7 @@ fun TopBar(
     volume: Float,
     tempoMultiplier: Float,
     showSettings: Boolean,
-    showNoteNames: Boolean,
+    noteNameMode: NoteNameMode,
     showNextHint: Boolean,
     stepIndex: Int = 0,
     totalSteps: Int = 0,
@@ -54,7 +55,7 @@ fun TopBar(
     onVolumeChange: (Float) -> Unit,
     onTempoChange: (Float) -> Unit,
     onToggleSettings: () -> Unit,
-    onToggleNoteNames: () -> Unit,
+    onNoteNameModeChange: (NoteNameMode) -> Unit,
     onToggleNextHint: () -> Unit,
     onShiftKeyboard: (Int) -> Unit = {},
     isSustainPedal: Boolean = false,
@@ -96,10 +97,6 @@ fun TopBar(
                             onDismissRequest = { showDashboard = false },
                             modifier = Modifier.background(Color(0xFF1A1D2E))
                         ) {
-                            DropdownMenuItem(
-                                text = { Text("음이름 표시 ${if (showNoteNames) "✓" else ""}", fontSize = 12.sp, color = PianoColors.TextPrimary) },
-                                onClick = { showDashboard = false; onToggleNoteNames() }
-                            )
                             DropdownMenuItem(
                                 text = { Text("다음 힌트 ${if (showNextHint) "✓" else ""}", fontSize = 12.sp, color = PianoColors.TextPrimary) },
                                 onClick = { showDashboard = false; onToggleNextHint() }
@@ -192,27 +189,92 @@ fun TopBar(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    LandscapeModeBtn("자유", playMode == PlayMode.FREE, false, true, PianoColors.Amber) {
-                        onModeButtonClick(PlayMode.FREE)
+                    // 재생 모드 팝업
+                    var showLandModePopup by remember { mutableStateOf(false) }
+                    Box {
+                        val (lmLabel, lmColor) = when {
+                            playMode == PlayMode.FREE -> "🎸자유" to PianoColors.Amber
+                            playMode == PlayMode.AUTO && isPlaying -> "■정지" to PianoColors.Blue
+                            playMode == PlayMode.AUTO -> "▶재생" to PianoColors.Blue
+                            playMode == PlayMode.INTERACTIVE && isPlaying -> "■정지" to PianoColors.Emerald
+                            playMode == PlayMode.INTERACTIVE -> "✋따라하기" to PianoColors.Emerald
+                            playMode == PlayMode.PRACTICE && isPlaying -> "■정지" to Color(0xFF8B5CF6)
+                            else -> "🎓혼자하기" to Color(0xFF8B5CF6)
+                        }
+                        LandscapeModeBtn(lmLabel, true, playMode != PlayMode.FREE && isPlaying, true, lmColor) {
+                            if (isPlaying) onModeButtonClick(playMode)
+                            else showLandModePopup = true
+                        }
+                        DropdownMenu(
+                            expanded = showLandModePopup,
+                            onDismissRequest = { showLandModePopup = false },
+                            modifier = Modifier.background(Color(0xFF1A1D2E))
+                        ) {
+                            listOf(
+                                Triple(PlayMode.FREE, "🎸 자유", PianoColors.Amber),
+                                Triple(PlayMode.AUTO, "▶ 재생", PianoColors.Blue),
+                                Triple(PlayMode.INTERACTIVE, "✋ 따라하기", PianoColors.Emerald),
+                                Triple(PlayMode.PRACTICE, "🎓 혼자하기", Color(0xFF8B5CF6))
+                            ).forEach { (mode, label, color) ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(label, fontSize = 12.sp,
+                                            color = if (playMode == mode) color else PianoColors.TextPrimary,
+                                            fontWeight = if (playMode == mode) FontWeight.Bold else FontWeight.Normal)
+                                    },
+                                    onClick = {
+                                        showLandModePopup = false
+                                        if (mode != PlayMode.FREE && !canPlay) return@DropdownMenuItem
+                                        onModeButtonClick(mode)
+                                    }
+                                )
+                            }
+                        }
                     }
-                    LandscapeModeBtn(
-                        icon = if (playMode == PlayMode.AUTO && isPlaying) "■정지" else "▶재생",
-                        isActive = playMode == PlayMode.AUTO,
-                        isPlaying = playMode == PlayMode.AUTO && isPlaying,
-                        enabled = canPlay, activeColor = PianoColors.Blue
-                    ) { onModeButtonClick(PlayMode.AUTO) }
-                    LandscapeModeBtn(
-                        icon = if (playMode == PlayMode.INTERACTIVE && isPlaying) "■정지" else "따라하기",
-                        isActive = playMode == PlayMode.INTERACTIVE,
-                        isPlaying = playMode == PlayMode.INTERACTIVE && isPlaying,
-                        enabled = canPlay, activeColor = PianoColors.Emerald
-                    ) { onModeButtonClick(PlayMode.INTERACTIVE) }
-                    LandscapeModeBtn(
-                        icon = if (playMode == PlayMode.PRACTICE && isPlaying) "■정지" else "혼자하기",
-                        isActive = playMode == PlayMode.PRACTICE,
-                        isPlaying = playMode == PlayMode.PRACTICE && isPlaying,
-                        enabled = canPlay, activeColor = Color(0xFF8B5CF6)
-                    ) { onModeButtonClick(PlayMode.PRACTICE) }
+
+                    Box(Modifier.width(1.dp).height(18.dp).background(Color(0xFF303452)))
+
+                    // 음이름 표시 아이콘
+                    var showNoteNamePopup by remember { mutableStateOf(false) }
+                    Box {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(if (noteNameMode != NoteNameMode.NONE) PianoColors.Emerald.copy(0.2f) else Color.Transparent)
+                                .clickable { showNoteNamePopup = true }
+                                .padding(6.dp)
+                        ) {
+                            Text("♩", fontSize = 14.sp,
+                                color = if (noteNameMode != NoteNameMode.NONE) PianoColors.Emerald else PianoColors.TextSecondary)
+                        }
+                        DropdownMenu(
+                            expanded = showNoteNamePopup,
+                            onDismissRequest = { showNoteNamePopup = false },
+                            modifier = Modifier.background(Color(0xFF1A1D2E))
+                        ) {
+                            Text("키에 라벨을 보여줍니다", fontSize = 11.sp, color = PianoColors.TextMuted,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                            listOf(
+                                NoteNameMode.PITCH_OCTAVE to "키에 'C4', 'D4' 표시",
+                                NoteNameMode.SOLFEGE     to "키에 'Do', 'Re' 표시",
+                                NoteNameMode.NUMBER      to "키에 '1', '2' 표시",
+                                NoteNameMode.PITCH       to "키에 'C' 표시",
+                                NoteNameMode.NONE        to "비활성"
+                            ).forEach { (mode, label) ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            Text(if (noteNameMode == mode) "●" else "○", fontSize = 12.sp,
+                                                color = if (noteNameMode == mode) PianoColors.Emerald else PianoColors.TextMuted)
+                                            Text(label, fontSize = 12.sp,
+                                                color = if (noteNameMode == mode) PianoColors.Emerald else PianoColors.TextPrimary)
+                                        }
+                                    },
+                                    onClick = { showNoteNamePopup = false; onNoteNameModeChange(mode) }
+                                )
+                            }
+                        }
+                    }
 
                     Box(Modifier.width(1.dp).height(18.dp).background(Color(0xFF303452)))
 
@@ -287,22 +349,10 @@ fun TopBar(
                             .padding(horizontal = 10.dp, vertical = 4.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(5.dp)
-                        ) {
-                            // 3페달 아이콘 Canvas
-                            ThreePedalIcon(
-                                isActive = isSustainPedal,
-                                modifier = Modifier.size(width = 28.dp, height = 16.dp)
-                            )
-                            Text(
-                                "페달",
-                                fontSize = 9.sp,
-                                color = if (isSustainPedal) Color.White else PianoColors.TextSecondary,
-                                fontWeight = if (isSustainPedal) FontWeight.Bold else FontWeight.Normal
-                            )
-                        }
+                        ThreePedalIcon(
+                            isActive = isSustainPedal,
+                            modifier = Modifier.size(width = 28.dp, height = 16.dp)
+                        )
                     }
                 }
 
@@ -351,7 +401,7 @@ fun TopBar(
 
             // 설정 패널 (음색만)
             if (showSettings) {
-                SoundSettingsPanel(soundMode, showNoteNames, showNextHint, onSoundModeChange, onToggleNoteNames, onToggleNextHint)
+                SoundSettingsPanel(soundMode, showNextHint, onSoundModeChange, onToggleNextHint)
             }
 
         } else {
@@ -387,25 +437,94 @@ fun TopBar(
                     if (selectedSong != null) Text("▾", fontSize = 11.sp, color = PianoColors.TextMuted)
                 }
 
-                ModeToggleBtn("자유", "🎸", playMode == PlayMode.FREE, false, true, PianoColors.Amber) { onModeButtonClick(PlayMode.FREE) }
-                ModeToggleBtn(
-                    label = if (playMode == PlayMode.AUTO && isPlaying) "정지" else "재생",
-                    icon = if (playMode == PlayMode.AUTO && isPlaying) "■" else "▶",
-                    isActive = playMode == PlayMode.AUTO, isPlaying = playMode == PlayMode.AUTO && isPlaying,
-                    enabled = canPlay, activeColor = PianoColors.Blue
-                ) { onModeButtonClick(PlayMode.AUTO) }
-                ModeToggleBtn(
-                    label = if (playMode == PlayMode.INTERACTIVE && isPlaying) "정지" else "따라하기",
-                    icon = if (playMode == PlayMode.INTERACTIVE && isPlaying) "■" else "✋",
-                    isActive = playMode == PlayMode.INTERACTIVE, isPlaying = playMode == PlayMode.INTERACTIVE && isPlaying,
-                    enabled = canPlay, activeColor = PianoColors.Emerald
-                ) { onModeButtonClick(PlayMode.INTERACTIVE) }
-                ModeToggleBtn(
-                    label = if (playMode == PlayMode.PRACTICE && isPlaying) "정지" else "혼자하기",
-                    icon = if (playMode == PlayMode.PRACTICE && isPlaying) "■" else "🎓",
-                    isActive = playMode == PlayMode.PRACTICE, isPlaying = playMode == PlayMode.PRACTICE && isPlaying,
-                    enabled = canPlay, activeColor = Color(0xFF8B5CF6)
-                ) { onModeButtonClick(PlayMode.PRACTICE) }
+                // 재생 모드 팝업
+                var showPortModePopup by remember { mutableStateOf(false) }
+                Box {
+                    val (pmLabel, pmIcon, pmColor) = when {
+                        playMode == PlayMode.FREE -> Triple("자유", "🎸", PianoColors.Amber)
+                        playMode == PlayMode.AUTO && isPlaying -> Triple("정지", "■", PianoColors.Blue)
+                        playMode == PlayMode.AUTO -> Triple("재생", "▶", PianoColors.Blue)
+                        playMode == PlayMode.INTERACTIVE && isPlaying -> Triple("정지", "■", PianoColors.Emerald)
+                        playMode == PlayMode.INTERACTIVE -> Triple("따라하기", "✋", PianoColors.Emerald)
+                        playMode == PlayMode.PRACTICE && isPlaying -> Triple("정지", "■", Color(0xFF8B5CF6))
+                        else -> Triple("혼자하기", "🎓", Color(0xFF8B5CF6))
+                    }
+                    ModeToggleBtn(pmLabel, pmIcon, true, playMode != PlayMode.FREE && isPlaying, true, pmColor) {
+                        if (isPlaying) onModeButtonClick(playMode)
+                        else showPortModePopup = true
+                    }
+                    DropdownMenu(
+                        expanded = showPortModePopup,
+                        onDismissRequest = { showPortModePopup = false },
+                        modifier = Modifier.background(Color(0xFF1A1D2E))
+                    ) {
+                        listOf(
+                            Triple(PlayMode.FREE, "🎸 자유", PianoColors.Amber),
+                            Triple(PlayMode.AUTO, "▶ 재생", PianoColors.Blue),
+                            Triple(PlayMode.INTERACTIVE, "✋ 따라하기", PianoColors.Emerald),
+                            Triple(PlayMode.PRACTICE, "🎓 혼자하기", Color(0xFF8B5CF6))
+                        ).forEach { (mode, label, color) ->
+                            DropdownMenuItem(
+                                text = {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Text(if (playMode == mode) "●" else "○", fontSize = 12.sp,
+                                            color = if (playMode == mode) color else PianoColors.TextMuted)
+                                        Text(label, fontSize = 12.sp,
+                                            color = if (playMode == mode) color else PianoColors.TextPrimary,
+                                            fontWeight = if (playMode == mode) FontWeight.Bold else FontWeight.Normal)
+                                    }
+                                },
+                                onClick = {
+                                    showPortModePopup = false
+                                    if (mode != PlayMode.FREE && !canPlay) return@DropdownMenuItem
+                                    onModeButtonClick(mode)
+                                }
+                            )
+                        }
+                    }
+                }
+
+                // 음이름 표시 아이콘
+                var showNoteNamePopupPort by remember { mutableStateOf(false) }
+                Box {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(if (noteNameMode != NoteNameMode.NONE) PianoColors.Emerald.copy(0.2f) else Color.Transparent)
+                            .clickable { showNoteNamePopupPort = true }
+                            .padding(5.dp)
+                    ) {
+                        Text("♩", fontSize = 14.sp,
+                            color = if (noteNameMode != NoteNameMode.NONE) PianoColors.Emerald else PianoColors.TextSecondary)
+                    }
+                    DropdownMenu(
+                        expanded = showNoteNamePopupPort,
+                        onDismissRequest = { showNoteNamePopupPort = false },
+                        modifier = Modifier.background(Color(0xFF1A1D2E))
+                    ) {
+                        Text("키에 라벨을 보여줍니다", fontSize = 11.sp, color = PianoColors.TextMuted,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                        listOf(
+                            NoteNameMode.PITCH_OCTAVE to "키에 'C4', 'D4' 표시",
+                            NoteNameMode.SOLFEGE     to "키에 'Do', 'Re' 표시",
+                            NoteNameMode.NUMBER      to "키에 '1', '2' 표시",
+                            NoteNameMode.PITCH       to "키에 'C' 표시",
+                            NoteNameMode.NONE        to "비활성"
+                        ).forEach { (mode, label) ->
+                            DropdownMenuItem(
+                                text = {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Text(if (noteNameMode == mode) "●" else "○", fontSize = 12.sp,
+                                            color = if (noteNameMode == mode) PianoColors.Emerald else PianoColors.TextMuted)
+                                        Text(label, fontSize = 12.sp,
+                                            color = if (noteNameMode == mode) PianoColors.Emerald else PianoColors.TextPrimary)
+                                    }
+                                },
+                                onClick = { showNoteNamePopupPort = false; onNoteNameModeChange(mode) }
+                            )
+                        }
+                    }
+                }
 
                 Text("v${BuildConfig.VERSION_NAME}", fontSize = 8.sp, color = Color(0xFF3A3E55))
 
@@ -486,8 +605,8 @@ fun TopBar(
 
             if (showSettings) {
                 SettingsPanel(
-                    volume, tempoMultiplier, showNoteNames, showNextHint, soundMode,
-                    onVolumeChange, onTempoChange, onToggleNoteNames, onToggleNextHint, onSoundModeChange
+                    volume, tempoMultiplier, showNextHint, soundMode,
+                    onVolumeChange, onTempoChange, onToggleNextHint, onSoundModeChange
                 )
             }
         }
@@ -755,10 +874,8 @@ private fun SmallChip(label: String, selected: Boolean, activeColor: Color, onCl
 @Composable
 private fun SoundSettingsPanel(
     soundMode: SoundMode,
-    showNoteNames: Boolean,
     showNextHint: Boolean,
     onSoundModeChange: (SoundMode) -> Unit,
-    onToggleNoteNames: () -> Unit,
     onToggleNextHint: () -> Unit
 ) {
     Row(
@@ -793,17 +910,16 @@ private fun SoundSettingsPanel(
             }
         }
         Spacer(Modifier.weight(1f))
-        ToggleRow("음이름", showNoteNames, onToggleNoteNames)
         ToggleRow("힌트", showNextHint, onToggleNextHint)
     }
 }
 
 @Composable
 private fun SettingsPanel(
-    volume: Float, tempo: Float, showNoteNames: Boolean, showNextHint: Boolean,
+    volume: Float, tempo: Float, showNextHint: Boolean,
     soundMode: SoundMode,
     onVolumeChange: (Float) -> Unit, onTempoChange: (Float) -> Unit,
-    onToggleNoteNames: () -> Unit, onToggleNextHint: () -> Unit,
+    onToggleNextHint: () -> Unit,
     onSoundModeChange: (SoundMode) -> Unit
 ) {
     Column(
@@ -855,7 +971,6 @@ private fun SettingsPanel(
             Text("×${String.format("%.1f", tempo)}", fontSize = 10.sp, color = PianoColors.TextSecondary, modifier = Modifier.width(30.dp))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-            ToggleRow("음이름", showNoteNames, onToggleNoteNames)
             ToggleRow("다음 힌트", showNextHint, onToggleNextHint)
         }
     }

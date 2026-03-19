@@ -181,3 +181,33 @@ fun getNoteSymbol(d: Float): String = when {
     d >= 0.5f -> "♪"
     else -> "♬"
 }
+
+// 음이름 표시 모드
+enum class NoteNameMode {
+    NONE,         // 비활성
+    PITCH_OCTAVE, // 'C4', 'D4'
+    SOLFEGE,      // 'Do', 'Re' (도, 레)
+    NUMBER,       // '1', '2'
+    PITCH         // 'C'
+}
+
+private val NOTE_NUMBERS = mapOf(
+    "C" to "1","D" to "2","E" to "3","F" to "4","G" to "5","A" to "6","B" to "7"
+)
+
+fun getNoteLabelForMode(note: String, mode: NoteNameMode): String? {
+    if (mode == NoteNameMode.NONE) return null
+    val regex = Regex("^([A-G])(#?)([0-9])$")
+    val match = regex.find(note) ?: return null
+    val name = match.groupValues[1]
+    val sharp = match.groupValues[2]
+    val octave = match.groupValues[3]
+    val sharpSym = if (sharp.isNotEmpty()) "♯" else ""
+    return when (mode) {
+        NoteNameMode.NONE -> null
+        NoteNameMode.PITCH_OCTAVE -> "$name${if (sharp.isNotEmpty()) "#" else ""}$octave"
+        NoteNameMode.SOLFEGE -> "${KOREAN_NAMES[name] ?: name}$sharpSym"
+        NoteNameMode.NUMBER -> "${NOTE_NUMBERS[name] ?: name}$sharpSym"
+        NoteNameMode.PITCH -> "$name${if (sharp.isNotEmpty()) "#" else ""}"
+    }
+}

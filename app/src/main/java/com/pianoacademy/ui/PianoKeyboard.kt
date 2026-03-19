@@ -62,7 +62,7 @@ fun PianoKeyboard(
     highlightKeys: Set<String>,
     wrongKeys: Set<String>,
     correctKeys: Set<String>,
-    showNoteNames: Boolean,
+    noteNameMode: com.pianoacademy.data.NoteNameMode,
     isLandscape: Boolean,
     octaveShift: Int = 0,
     onNoteOn: (String) -> Unit,
@@ -205,8 +205,9 @@ fun PianoKeyboard(
                     ),
                 contentAlignment = Alignment.BottomCenter
             ) {
-                if (showNoteNames || isHighlight) {
-                    val noteName = getKoreanName(key.note)
+                if (noteNameMode != com.pianoacademy.data.NoteNameMode.NONE || isHighlight) {
+                    val noteName = com.pianoacademy.data.getNoteLabelForMode(key.note, noteNameMode)
+                        ?: com.pianoacademy.data.getKoreanName(key.note)
                     // 힌트 원형 배지
                     if (isHighlight && !isActive && !isWrong && !isCorrect) {
                         Box(
