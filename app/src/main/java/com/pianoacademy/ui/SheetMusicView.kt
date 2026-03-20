@@ -213,7 +213,7 @@ fun SheetMusicView(
                 // 음표 줄기 (stem) — B4(offset=6) 기준으로 위아래 방향 결정
                 if (!isWhole) {
                     val stemUp  = offset <= 6
-                    val stemLen = (SS * 3.5f).coerceIn(18f, 32f)
+                    val stemLen = (SS * 4.2f).coerceIn(21.6f, 38.4f)
                     val tailLen = (SS * 1.4f).coerceIn(10f, 16f)
                     if (stemUp) {
                         drawLine(color = noteColor,

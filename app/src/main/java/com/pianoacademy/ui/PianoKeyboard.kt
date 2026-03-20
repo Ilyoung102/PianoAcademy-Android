@@ -14,6 +14,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
@@ -65,6 +66,7 @@ fun PianoKeyboard(
     noteNameMode: com.pianoacademy.data.NoteNameMode,
     isLandscape: Boolean,
     octaveShift: Int = 0,
+    isMirror: Boolean = false,
     onNoteOn: (String) -> Unit,
     onNoteOff: (String, Boolean) -> Unit,
     modifier: Modifier = Modifier
@@ -82,7 +84,7 @@ fun PianoKeyboard(
     fun noteAtPosition(offset: Offset): String? {
         if (keyboardWidthPx == 0f) return null
         val relX = offset.x / keyboardWidthPx
-        val relY = offset.y / keyboardHeightPx
+        val relY = if (isMirror) 1f - (offset.y / keyboardHeightPx) else offset.y / keyboardHeightPx
 
         val blackKey = blacks.firstOrNull { k ->
             relX >= k.xFraction && relX <= k.xFraction + k.widthFraction && relY < 0.60f
@@ -100,6 +102,7 @@ fun PianoKeyboard(
     Box(
         modifier = modifier
             .fillMaxWidth()
+            .graphicsLayer { scaleY = if (isMirror) -1f else 1f }
             .background(
                 Brush.verticalGradient(
                     colors = listOf(Color(0xFF0A0C14), Color(0xFF151825))

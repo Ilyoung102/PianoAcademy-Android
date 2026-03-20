@@ -4,13 +4,17 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.pianoacademy.viewmodel.KeyboardLayout
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.pianoacademy.data.parseMdSongs
@@ -49,7 +53,7 @@ fun PianoScreen(
                 )
             )
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        val topBarContent: @Composable () -> Unit = {
             TopBar(
                 selectedSong = state.selectedSong,
                 selectedLevel = state.selectedLevel,
@@ -78,11 +82,13 @@ fun PianoScreen(
                 onShiftKeyboard = { vm.shiftKeyboard(it) },
                 isSustainPedal = state.isSustainPedal,
                 onToggleSustainPedal = { vm.toggleSustainPedal() },
-                onLoadMdFile = { mdFileLauncher.launch(arrayOf("text/*", "text/plain", "text/markdown")) }
+                onLoadMdFile = { mdFileLauncher.launch(arrayOf("text/*", "text/plain", "text/markdown")) },
+                keyboardLayout = state.keyboardLayout,
+                onKeyboardLayoutChange = { vm.setKeyboardLayout(it) }
             )
+        }
 
-            ScoreArea(state, modifier = Modifier.weight(1f))
-
+        val keyboardContent: @Composable (Boolean, Modifier) -> Unit = { mirror, mod ->
             PianoKeyboard(
                 activeKeys = state.activeKeys,
                 highlightKeys = when {
@@ -95,12 +101,50 @@ fun PianoScreen(
                 noteNameMode = state.noteNameMode,
                 isLandscape = state.isLandscape,
                 octaveShift = state.keyOctaveShift,
+                isMirror = mirror,
                 onNoteOn = { vm.pressKey(it) },
                 onNoteOff = { note, natural -> vm.releaseKey(note, natural) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(if (state.isLandscape) 173.dp else 234.dp)
+                modifier = mod
             )
+        }
+
+        val fixedKbHeight = if (state.isLandscape) 173.dp else 234.dp
+
+        when {
+            // ── 마주 보기: [뒤집힌 건반] [TopBar 중앙] [일반 건반] ──
+            state.playMode == PlayMode.FREE && state.keyboardLayout == KeyboardLayout.MIRROR -> {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    keyboardContent(true, Modifier.fillMaxWidth().weight(1f))
+                    HorizontalDivider(color = Color(0xFF252840), thickness = 1.dp)
+                    topBarContent()
+                    HorizontalDivider(color = Color(0xFF252840), thickness = 1.dp)
+                    keyboardContent(false, Modifier.fillMaxWidth().weight(1f))
+                }
+            }
+            // ── 2개 건반: TopBar + [건반1] + [건반2] ──
+            state.playMode == PlayMode.FREE && state.keyboardLayout == KeyboardLayout.DOUBLE -> {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    topBarContent()
+                    keyboardContent(false, Modifier.fillMaxWidth().weight(1f))
+                    HorizontalDivider(color = Color(0xFF1A1D2A), thickness = 1.dp)
+                    keyboardContent(false, Modifier.fillMaxWidth().weight(1f))
+                }
+            }
+            // ── 자유 모드 1개: TopBar + 건반(확장) ──
+            state.playMode == PlayMode.FREE -> {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    topBarContent()
+                    keyboardContent(false, Modifier.fillMaxWidth().weight(1f))
+                }
+            }
+            // ── 일반 모드: TopBar + ScoreArea + 건반(고정) ──
+            else -> {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    topBarContent()
+                    ScoreArea(state, modifier = Modifier.weight(1f))
+                    keyboardContent(false, Modifier.fillMaxWidth().height(fixedKbHeight))
+                }
+            }
         }
 
         state.gameResult?.let { result ->

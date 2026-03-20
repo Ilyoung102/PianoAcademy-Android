@@ -30,6 +30,7 @@ import com.pianoacademy.ui.theme.PianoColors
 import com.pianoacademy.viewmodel.FallingMode
 import com.pianoacademy.data.NoteNameMode
 import com.pianoacademy.viewmodel.PlayMode
+import com.pianoacademy.viewmodel.KeyboardLayout
 
 @Composable
 fun TopBar(
@@ -61,6 +62,8 @@ fun TopBar(
     isSustainPedal: Boolean = false,
     onToggleSustainPedal: () -> Unit = {},
     onLoadMdFile: () -> Unit = {},
+    keyboardLayout: KeyboardLayout = KeyboardLayout.SINGLE,
+    onKeyboardLayoutChange: (KeyboardLayout) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val levelCfg = LEVEL_CONFIG[selectedLevel]
@@ -272,6 +275,97 @@ fun TopBar(
                                     },
                                     onClick = { showNoteNamePopup = false; onNoteNameModeChange(mode) }
                                 )
+                            }
+                        }
+                    }
+
+                    // 자유 모드: 피아노 종류 아이콘
+                    if (playMode == PlayMode.FREE) {
+                        var showLandPianoTypePopup by remember { mutableStateOf(false) }
+                        Box {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(Color(0xFF1C1F2E))
+                                    .border(1.dp, Color(0xFF282B3E), RoundedCornerShape(6.dp))
+                                    .clickable { showLandPianoTypePopup = true }
+                                    .padding(6.dp)
+                            ) {
+                                Text(soundMode.icon, fontSize = 14.sp)
+                            }
+                            DropdownMenu(
+                                expanded = showLandPianoTypePopup,
+                                onDismissRequest = { showLandPianoTypePopup = false },
+                                modifier = Modifier.background(Color(0xFF1A1D2E))
+                            ) {
+                                Text("피아노 종류", fontSize = 11.sp, color = PianoColors.TextMuted,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                                com.pianoacademy.audio.SoundMode.values().forEach { sm ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                Text(if (soundMode == sm) "●" else "○", fontSize = 12.sp,
+                                                    color = if (soundMode == sm) PianoColors.Violet else PianoColors.TextMuted)
+                                                Text(sm.icon, fontSize = 14.sp)
+                                                Text(sm.label, fontSize = 12.sp,
+                                                    color = if (soundMode == sm) PianoColors.Violet else PianoColors.TextPrimary,
+                                                    fontWeight = if (soundMode == sm) FontWeight.Bold else FontWeight.Normal)
+                                            }
+                                        },
+                                        onClick = { showLandPianoTypePopup = false; onSoundModeChange(sm) }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // 건반 레이아웃 선택
+                    run {
+                        val isFreeMode = playMode == PlayMode.FREE
+                        val layoutLabel = when (keyboardLayout) {
+                            KeyboardLayout.SINGLE -> "1건"
+                            KeyboardLayout.DOUBLE -> "2건"
+                            KeyboardLayout.MIRROR -> "마주"
+                        }
+                        var showLandLayoutPopup by remember { mutableStateOf(false) }
+                        Box {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(if (isFreeMode && keyboardLayout != KeyboardLayout.SINGLE) PianoColors.Blue.copy(0.2f) else Color(0xFF1C1F2E))
+                                    .border(1.dp, if (isFreeMode) Color(0xFF383B5E) else Color(0xFF1E2030), RoundedCornerShape(6.dp))
+                                    .then(if (isFreeMode) Modifier.clickable { showLandLayoutPopup = true } else Modifier)
+                                    .padding(horizontal = 8.dp, vertical = 5.dp)
+                            ) {
+                                Text(layoutLabel, fontSize = 10.sp,
+                                    color = if (isFreeMode) PianoColors.Blue else PianoColors.TextMuted.copy(0.4f),
+                                    fontWeight = FontWeight.Bold)
+                            }
+                            if (isFreeMode) {
+                                DropdownMenu(
+                                    expanded = showLandLayoutPopup,
+                                    onDismissRequest = { showLandLayoutPopup = false },
+                                    modifier = Modifier.background(Color(0xFF1A1D2E))
+                                ) {
+                                    listOf(
+                                        KeyboardLayout.SINGLE to "🎹 1개 건반",
+                                        KeyboardLayout.DOUBLE to "🎹🎹 2개 건반",
+                                        KeyboardLayout.MIRROR to "↕ 마주 보기"
+                                    ).forEach { (layout, label) ->
+                                        DropdownMenuItem(
+                                            text = {
+                                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                    Text(if (keyboardLayout == layout) "●" else "○", fontSize = 12.sp,
+                                                        color = if (keyboardLayout == layout) PianoColors.Blue else PianoColors.TextMuted)
+                                                    Text(label, fontSize = 12.sp,
+                                                        color = if (keyboardLayout == layout) PianoColors.Blue else PianoColors.TextPrimary,
+                                                        fontWeight = if (keyboardLayout == layout) FontWeight.Bold else FontWeight.Normal)
+                                                }
+                                            },
+                                            onClick = { showLandLayoutPopup = false; onKeyboardLayoutChange(layout) }
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -522,6 +616,97 @@ fun TopBar(
                                 },
                                 onClick = { showNoteNamePopupPort = false; onNoteNameModeChange(mode) }
                             )
+                        }
+                    }
+                }
+
+                // 자유 모드: 피아노 종류 아이콘
+                if (playMode == PlayMode.FREE) {
+                    var showPianoTypePopup by remember { mutableStateOf(false) }
+                    Box {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color(0xFF1C1F2E))
+                                .border(1.dp, Color(0xFF282B3E), RoundedCornerShape(6.dp))
+                                .clickable { showPianoTypePopup = true }
+                                .padding(5.dp)
+                        ) {
+                            Text(soundMode.icon, fontSize = 14.sp)
+                        }
+                        DropdownMenu(
+                            expanded = showPianoTypePopup,
+                            onDismissRequest = { showPianoTypePopup = false },
+                            modifier = Modifier.background(Color(0xFF1A1D2E))
+                        ) {
+                            Text("피아노 종류", fontSize = 11.sp, color = PianoColors.TextMuted,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                            com.pianoacademy.audio.SoundMode.values().forEach { sm ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            Text(if (soundMode == sm) "●" else "○", fontSize = 12.sp,
+                                                color = if (soundMode == sm) PianoColors.Violet else PianoColors.TextMuted)
+                                            Text(sm.icon, fontSize = 14.sp)
+                                            Text(sm.label, fontSize = 12.sp,
+                                                color = if (soundMode == sm) PianoColors.Violet else PianoColors.TextPrimary,
+                                                fontWeight = if (soundMode == sm) FontWeight.Bold else FontWeight.Normal)
+                                        }
+                                    },
+                                    onClick = { showPianoTypePopup = false; onSoundModeChange(sm) }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // 건반 레이아웃 선택 (자유모드 활성, 다른 모드 비활성)
+                run {
+                    val isFreeMode = playMode == PlayMode.FREE
+                    val layoutLabel = when (keyboardLayout) {
+                        KeyboardLayout.SINGLE -> "1건"
+                        KeyboardLayout.DOUBLE -> "2건"
+                        KeyboardLayout.MIRROR -> "마주"
+                    }
+                    var showLayoutPopup by remember { mutableStateOf(false) }
+                    Box {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(if (isFreeMode && keyboardLayout != KeyboardLayout.SINGLE) PianoColors.Blue.copy(0.2f) else Color(0xFF1C1F2E))
+                                .border(1.dp, if (isFreeMode) Color(0xFF383B5E) else Color(0xFF1E2030), RoundedCornerShape(6.dp))
+                                .then(if (isFreeMode) Modifier.clickable { showLayoutPopup = true } else Modifier)
+                                .padding(horizontal = 6.dp, vertical = 5.dp)
+                        ) {
+                            Text(layoutLabel, fontSize = 9.sp,
+                                color = if (isFreeMode) PianoColors.Blue else PianoColors.TextMuted.copy(0.4f),
+                                fontWeight = FontWeight.Bold)
+                        }
+                        if (isFreeMode) {
+                            DropdownMenu(
+                                expanded = showLayoutPopup,
+                                onDismissRequest = { showLayoutPopup = false },
+                                modifier = Modifier.background(Color(0xFF1A1D2E))
+                            ) {
+                                listOf(
+                                    KeyboardLayout.SINGLE to "🎹 1개 건반",
+                                    KeyboardLayout.DOUBLE to "🎹🎹 2개 건반",
+                                    KeyboardLayout.MIRROR to "↕ 마주 보기"
+                                ).forEach { (layout, label) ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                Text(if (keyboardLayout == layout) "●" else "○", fontSize = 12.sp,
+                                                    color = if (keyboardLayout == layout) PianoColors.Blue else PianoColors.TextMuted)
+                                                Text(label, fontSize = 12.sp,
+                                                    color = if (keyboardLayout == layout) PianoColors.Blue else PianoColors.TextPrimary,
+                                                    fontWeight = if (keyboardLayout == layout) FontWeight.Bold else FontWeight.Normal)
+                                            }
+                                        },
+                                        onClick = { showLayoutPopup = false; onKeyboardLayoutChange(layout) }
+                                    )
+                                }
+                            }
                         }
                     }
                 }

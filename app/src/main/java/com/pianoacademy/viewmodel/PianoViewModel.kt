@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.*
 
 enum class PlayMode { FREE, AUTO, INTERACTIVE, PRACTICE }
 enum class FallingMode { OFF, DOWN, UP }
+enum class KeyboardLayout { SINGLE, DOUBLE, MIRROR }
 
 data class PianoUiState(
     val selectedLevel: Int = 1,
@@ -36,6 +37,7 @@ data class PianoUiState(
     val bestScores: Map<String, Int> = emptyMap(),
     val wrongCount: Int = 0,
     val keyOctaveShift: Int = 0,
+    val keyboardLayout: KeyboardLayout = KeyboardLayout.SINGLE,
     val isSustainPedal: Boolean = false,
     val customSongs: List<Song> = emptyList()
 )
@@ -89,6 +91,8 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
             correctKeys = it.correctKeys - note
         )}
     }
+
+    fun setKeyboardLayout(layout: KeyboardLayout) { _uiState.update { it.copy(keyboardLayout = layout) } }
 
     fun toggleSustainPedal() {
         val isActive = _uiState.value.isSustainPedal
