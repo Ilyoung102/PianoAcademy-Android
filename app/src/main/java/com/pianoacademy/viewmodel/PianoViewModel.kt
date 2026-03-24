@@ -38,6 +38,7 @@ data class PianoUiState(
     val wrongCount: Int = 0,
     val keyOctaveShift: Int = 0,
     val keyboardLayout: KeyboardLayout = KeyboardLayout.SINGLE,
+    val activeKeys2: Set<String> = emptySet(),
     val isSustainPedal: Boolean = false,
     val customSongs: List<Song> = emptyList()
 )
@@ -60,6 +61,7 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
     private val bestScores = mutableMapOf<String, Int>()
     private var wrongCount = 0
     private val sustainedNotes = mutableSetOf<String>()
+    private val sustainedNotes2 = mutableSetOf<String>()
 
     fun pressKey(note: String) {
         val freq = NOTE_MAP[note]?.frequency ?: noteToFrequency(note)
@@ -93,6 +95,22 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun setKeyboardLayout(layout: KeyboardLayout) { _uiState.update { it.copy(keyboardLayout = layout) } }
+
+    // 두 번째 건반 (DOUBLE/MIRROR 모드 독립 동작)
+    fun pressKey2(note: String) {
+        val freq = NOTE_MAP[note]?.frequency ?: noteToFrequency(note)
+        soundEngine.playNote(note, freq)
+        _uiState.update { it.copy(activeKeys2 = it.activeKeys2 + note) }
+    }
+
+    fun releaseKey2(note: String, natural: Boolean = true) {
+        if (_uiState.value.isSustainPedal) {
+            sustainedNotes2.add(note)
+        } else {
+            soundEngine.stopNote(note, natural)
+        }
+        _uiState.update { it.copy(activeKeys2 = it.activeKeys2 - note) }
+    }
 
     fun toggleSustainPedal() {
         val isActive = _uiState.value.isSustainPedal
@@ -193,10 +211,12 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
         autoPlayJob?.cancel()
         inputWaitJob?.cancel()
         sustainedNotes.clear()
+        sustainedNotes2.clear()
         soundEngine.stopAll()
         _uiState.update { it.copy(
             isPlaying = false,
             activeKeys = emptySet(),
+            activeKeys2 = emptySet(),
             highlightKeys = emptySet(),
             correctKeys = emptySet(),
             wrongKeys = emptySet(),

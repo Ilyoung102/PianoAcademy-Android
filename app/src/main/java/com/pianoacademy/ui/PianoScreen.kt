@@ -88,6 +88,7 @@ fun PianoScreen(
             )
         }
 
+        // 건반1 (메인, 항상 vm.pressKey 사용)
         val keyboardContent: @Composable (Boolean, Modifier) -> Unit = { mirror, mod ->
             PianoKeyboard(
                 activeKeys = state.activeKeys,
@@ -108,13 +109,30 @@ fun PianoScreen(
             )
         }
 
+        // 건반2 (DOUBLE/MIRROR 두 번째 건반, 독립 상태)
+        val keyboardContent2: @Composable (Boolean, Modifier) -> Unit = { mirror, mod ->
+            PianoKeyboard(
+                activeKeys = state.activeKeys2,
+                highlightKeys = emptySet(),
+                wrongKeys = emptySet(),
+                correctKeys = emptySet(),
+                noteNameMode = state.noteNameMode,
+                isLandscape = state.isLandscape,
+                octaveShift = state.keyOctaveShift,
+                isMirror = mirror,
+                onNoteOn = { vm.pressKey2(it) },
+                onNoteOff = { note, natural -> vm.releaseKey2(note, natural) },
+                modifier = mod
+            )
+        }
+
         val fixedKbHeight = if (state.isLandscape) 173.dp else 234.dp
 
         when {
-            // ── 마주 보기: [뒤집힌 건반] [TopBar 중앙] [일반 건반] ──
+            // ── 마주 보기: [건반2 뒤집힘] [TopBar 중앙] [건반1 일반] ──
             state.playMode == PlayMode.FREE && state.keyboardLayout == KeyboardLayout.MIRROR -> {
                 Column(modifier = Modifier.fillMaxSize()) {
-                    keyboardContent(true, Modifier.fillMaxWidth().weight(1f))
+                    keyboardContent2(true, Modifier.fillMaxWidth().weight(1f))
                     HorizontalDivider(color = Color(0xFF252840), thickness = 1.dp)
                     topBarContent()
                     HorizontalDivider(color = Color(0xFF252840), thickness = 1.dp)
@@ -127,14 +145,15 @@ fun PianoScreen(
                     topBarContent()
                     keyboardContent(false, Modifier.fillMaxWidth().weight(1f))
                     HorizontalDivider(color = Color(0xFF1A1D2A), thickness = 1.dp)
-                    keyboardContent(false, Modifier.fillMaxWidth().weight(1f))
+                    keyboardContent2(false, Modifier.fillMaxWidth().weight(1f))
                 }
             }
-            // ── 자유 모드 1개: TopBar + 건반(확장) ──
+            // ── 자유 모드 1개: TopBar + 건반(90%) + 여백(10%) ──
             state.playMode == PlayMode.FREE -> {
                 Column(modifier = Modifier.fillMaxSize()) {
                     topBarContent()
-                    keyboardContent(false, Modifier.fillMaxWidth().weight(1f))
+                    keyboardContent(false, Modifier.fillMaxWidth().weight(9f))
+                    Spacer(modifier = Modifier.weight(1f))
                 }
             }
             // ── 일반 모드: TopBar + ScoreArea + 건반(고정) ──
