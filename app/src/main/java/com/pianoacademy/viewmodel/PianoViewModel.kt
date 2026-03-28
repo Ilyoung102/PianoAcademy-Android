@@ -41,6 +41,7 @@ data class PianoUiState(
     val keyboardLayout: KeyboardLayout = KeyboardLayout.SINGLE,
     val activeKeys2: Set<String> = emptySet(),
     val isSustainPedal: Boolean = false,
+    val isSustainPedal2: Boolean = false,
     val customSongs: List<Song> = emptyList()
 )
 
@@ -117,7 +118,7 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun releaseKey2(note: String, natural: Boolean = true) {
-        if (_uiState.value.isSustainPedal) {
+        if (_uiState.value.isSustainPedal2) {
             sustainedNotes2.add(note)
         } else {
             soundEngine.stopNote(note, natural)
@@ -133,6 +134,15 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
             sustainedNotes.clear()
         }
         _uiState.update { it.copy(isSustainPedal = !it.isSustainPedal) }
+    }
+
+    fun toggleSustainPedal2() {
+        val isActive = _uiState.value.isSustainPedal2
+        if (isActive) {
+            sustainedNotes2.forEach { soundEngine.stopNote(it, natural = true) }
+            sustainedNotes2.clear()
+        }
+        _uiState.update { it.copy(isSustainPedal2 = !it.isSustainPedal2) }
     }
 
     private fun handleInteractiveInput(pressedNote: String) {

@@ -82,6 +82,8 @@ fun PianoScreen(
                 onShiftKeyboard = { vm.shiftKeyboard(it) },
                 isSustainPedal = state.isSustainPedal,
                 onToggleSustainPedal = { vm.toggleSustainPedal() },
+                isSustainPedal2 = state.isSustainPedal2,
+                onToggleSustainPedal2 = { vm.toggleSustainPedal2() },
                 onLoadMdFile = { mdFileLauncher.launch(arrayOf("text/*", "text/plain", "text/markdown")) },
                 keyboardLayout = state.keyboardLayout,
                 onKeyboardLayoutChange = { vm.setKeyboardLayout(it) },

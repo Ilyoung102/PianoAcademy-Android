@@ -61,6 +61,8 @@ fun TopBar(
     onShiftKeyboard: (Int) -> Unit = {},
     isSustainPedal: Boolean = false,
     onToggleSustainPedal: () -> Unit = {},
+    isSustainPedal2: Boolean = false,
+    onToggleSustainPedal2: () -> Unit = {},
     onLoadMdFile: () -> Unit = {},
     keyboardLayout: KeyboardLayout = KeyboardLayout.SINGLE,
     onKeyboardLayoutChange: (KeyboardLayout) -> Unit = {},
@@ -314,8 +316,8 @@ fun TopBar(
                         }
                     }
 
-                    // 자유 모드: 피아노 종류 아이콘
-                    if (playMode == PlayMode.FREE) {
+                    // 피아노 종류 아이콘 (모든 모드)
+                    run {
                         var showLandPianoTypePopup by remember { mutableStateOf(false) }
                         Box {
                             Box(
@@ -457,31 +459,73 @@ fun TopBar(
                     )
                 }
 
-                // 중앙: 페달 + 향후 기능 아이콘 공간
+                // 중앙: 페달 (DOUBLE/MIRROR시 2개, 아니면 1개)
+                val isDualKbPedal = keyboardLayout == KeyboardLayout.DOUBLE || keyboardLayout == KeyboardLayout.MIRROR
                 Row(
                     modifier = Modifier.weight(0.30f),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // 서스테인 페달 버튼 (3페달 아이콘)
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(
-                                if (isSustainPedal)
-                                    Brush.verticalGradient(listOf(PianoColors.Blue.copy(0.5f), PianoColors.Blue.copy(0.3f)))
-                                else
-                                    Brush.verticalGradient(listOf(Color(0xFF1C1F2E), Color(0xFF181B28)))
-                            )
-                            .border(1.dp, if (isSustainPedal) PianoColors.Blue else Color(0xFF282B3E), RoundedCornerShape(6.dp))
-                            .clickable { onToggleSustainPedal() }
-                            .padding(horizontal = 10.dp, vertical = 4.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        ThreePedalIcon(
-                            isActive = isSustainPedal,
-                            modifier = Modifier.size(width = 28.dp, height = 16.dp)
-                        )
+                    if (isDualKbPedal) {
+                        // 건반1 페달
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("1", fontSize = 7.sp, color = PianoColors.TextMuted)
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(
+                                        if (isSustainPedal)
+                                            Brush.verticalGradient(listOf(PianoColors.Blue.copy(0.5f), PianoColors.Blue.copy(0.3f)))
+                                        else
+                                            Brush.verticalGradient(listOf(Color(0xFF1C1F2E), Color(0xFF181B28)))
+                                    )
+                                    .border(1.dp, if (isSustainPedal) PianoColors.Blue else Color(0xFF282B3E), RoundedCornerShape(6.dp))
+                                    .clickable { onToggleSustainPedal() }
+                                    .padding(horizontal = 8.dp, vertical = 3.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                ThreePedalIcon(isActive = isSustainPedal, modifier = Modifier.size(width = 24.dp, height = 14.dp))
+                            }
+                        }
+                        Spacer(Modifier.width(6.dp))
+                        // 건반2 페달
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("2", fontSize = 7.sp, color = PianoColors.TextMuted)
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(
+                                        if (isSustainPedal2)
+                                            Brush.verticalGradient(listOf(PianoColors.Blue.copy(0.5f), PianoColors.Blue.copy(0.3f)))
+                                        else
+                                            Brush.verticalGradient(listOf(Color(0xFF1C1F2E), Color(0xFF181B28)))
+                                    )
+                                    .border(1.dp, if (isSustainPedal2) PianoColors.Blue else Color(0xFF282B3E), RoundedCornerShape(6.dp))
+                                    .clickable { onToggleSustainPedal2() }
+                                    .padding(horizontal = 8.dp, vertical = 3.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                ThreePedalIcon(isActive = isSustainPedal2, modifier = Modifier.size(width = 24.dp, height = 14.dp))
+                            }
+                        }
+                    } else {
+                        // 단일 페달 버튼
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(
+                                    if (isSustainPedal)
+                                        Brush.verticalGradient(listOf(PianoColors.Blue.copy(0.5f), PianoColors.Blue.copy(0.3f)))
+                                    else
+                                        Brush.verticalGradient(listOf(Color(0xFF1C1F2E), Color(0xFF181B28)))
+                                )
+                                .border(1.dp, if (isSustainPedal) PianoColors.Blue else Color(0xFF282B3E), RoundedCornerShape(6.dp))
+                                .clickable { onToggleSustainPedal() }
+                                .padding(horizontal = 10.dp, vertical = 4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            ThreePedalIcon(isActive = isSustainPedal, modifier = Modifier.size(width = 28.dp, height = 16.dp))
+                        }
                     }
                 }
 
@@ -663,8 +707,8 @@ fun TopBar(
                     }
                 }
 
-                // 자유 모드: 피아노 종류 아이콘
-                if (playMode == PlayMode.FREE) {
+                // 피아노 종류 아이콘 (모든 모드)
+                run {
                     var showPianoTypePopup by remember { mutableStateOf(false) }
                     Box {
                         Box(
