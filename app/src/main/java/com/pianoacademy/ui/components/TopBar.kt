@@ -241,19 +241,26 @@ fun TopBar(
                             onDismissRequest = { showLandModePopup = false },
                             modifier = Modifier.background(Color(0xFF1A1D2E))
                         ) {
+                            val isDualKb = keyboardLayout == KeyboardLayout.DOUBLE || keyboardLayout == KeyboardLayout.MIRROR
                             listOf(
                                 Triple(PlayMode.FREE, "🎸 자유", PianoColors.Amber),
                                 Triple(PlayMode.AUTO, "▶ 재생", PianoColors.Blue),
                                 Triple(PlayMode.INTERACTIVE, "✋ 따라하기", PianoColors.Emerald),
                                 Triple(PlayMode.PRACTICE, "🎓 혼자하기", Color(0xFF8B5CF6))
                             ).forEach { (mode, label, color) ->
+                                val disabled = isDualKb && mode != PlayMode.FREE
                                 DropdownMenuItem(
                                     text = {
                                         Text(label, fontSize = 12.sp,
-                                            color = if (playMode == mode) color else PianoColors.TextPrimary,
+                                            color = when {
+                                                disabled -> PianoColors.TextMuted.copy(alpha = 0.3f)
+                                                playMode == mode -> color
+                                                else -> PianoColors.TextPrimary
+                                            },
                                             fontWeight = if (playMode == mode) FontWeight.Bold else FontWeight.Normal)
                                     },
                                     onClick = {
+                                        if (disabled) return@DropdownMenuItem
                                         showLandModePopup = false
                                         if (mode != PlayMode.FREE && !canPlay) return@DropdownMenuItem
                                         onModeButtonClick(mode)
@@ -580,23 +587,31 @@ fun TopBar(
                         onDismissRequest = { showPortModePopup = false },
                         modifier = Modifier.background(Color(0xFF1A1D2E))
                     ) {
+                        val isDualKb = keyboardLayout == KeyboardLayout.DOUBLE || keyboardLayout == KeyboardLayout.MIRROR
                         listOf(
                             Triple(PlayMode.FREE, "🎸 자유", PianoColors.Amber),
                             Triple(PlayMode.AUTO, "▶ 재생", PianoColors.Blue),
                             Triple(PlayMode.INTERACTIVE, "✋ 따라하기", PianoColors.Emerald),
                             Triple(PlayMode.PRACTICE, "🎓 혼자하기", Color(0xFF8B5CF6))
                         ).forEach { (mode, label, color) ->
+                            val disabled = isDualKb && mode != PlayMode.FREE
                             DropdownMenuItem(
                                 text = {
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         Text(if (playMode == mode) "●" else "○", fontSize = 12.sp,
-                                            color = if (playMode == mode) color else PianoColors.TextMuted)
+                                            color = if (disabled) PianoColors.TextMuted.copy(alpha = 0.3f)
+                                                    else if (playMode == mode) color else PianoColors.TextMuted)
                                         Text(label, fontSize = 12.sp,
-                                            color = if (playMode == mode) color else PianoColors.TextPrimary,
+                                            color = when {
+                                                disabled -> PianoColors.TextMuted.copy(alpha = 0.3f)
+                                                playMode == mode -> color
+                                                else -> PianoColors.TextPrimary
+                                            },
                                             fontWeight = if (playMode == mode) FontWeight.Bold else FontWeight.Normal)
                                     }
                                 },
                                 onClick = {
+                                    if (disabled) return@DropdownMenuItem
                                     showPortModePopup = false
                                     if (mode != PlayMode.FREE && !canPlay) return@DropdownMenuItem
                                     onModeButtonClick(mode)

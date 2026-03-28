@@ -99,7 +99,15 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
         )}
     }
 
-    fun setKeyboardLayout(layout: KeyboardLayout) { _uiState.update { it.copy(keyboardLayout = layout) } }
+    fun setKeyboardLayout(layout: KeyboardLayout) {
+        // DOUBLE/MIRROR는 FREE 모드만 지원 → 다른 모드 중이면 FREE로 복원
+        if (layout == KeyboardLayout.DOUBLE || layout == KeyboardLayout.MIRROR) {
+            if (_uiState.value.playMode != PlayMode.FREE) stopPlayback()
+            _uiState.update { it.copy(keyboardLayout = layout, playMode = PlayMode.FREE) }
+        } else {
+            _uiState.update { it.copy(keyboardLayout = layout) }
+        }
+    }
 
     // 두 번째 건반 (DOUBLE/MIRROR 모드 독립 동작)
     fun pressKey2(note: String) {
