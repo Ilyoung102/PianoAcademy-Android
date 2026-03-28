@@ -84,7 +84,9 @@ fun PianoScreen(
                 onToggleSustainPedal = { vm.toggleSustainPedal() },
                 onLoadMdFile = { mdFileLauncher.launch(arrayOf("text/*", "text/plain", "text/markdown")) },
                 keyboardLayout = state.keyboardLayout,
-                onKeyboardLayoutChange = { vm.setKeyboardLayout(it) }
+                onKeyboardLayoutChange = { vm.setKeyboardLayout(it) },
+                keyOctaveShift2 = state.keyOctaveShift2,
+                onShiftKeyboard2 = { vm.shiftKeyboard2(it) }
             )
         }
 
@@ -109,7 +111,7 @@ fun PianoScreen(
             )
         }
 
-        // 건반2 (DOUBLE/MIRROR 두 번째 건반, 독립 상태)
+        // 건반2 (DOUBLE/MIRROR 두 번째 건반, 독립 상태 + 독립 옥타브)
         val keyboardContent2: @Composable (Boolean, Modifier) -> Unit = { mirror, mod ->
             PianoKeyboard(
                 activeKeys = state.activeKeys2,
@@ -118,7 +120,7 @@ fun PianoScreen(
                 correctKeys = emptySet(),
                 noteNameMode = state.noteNameMode,
                 isLandscape = state.isLandscape,
-                octaveShift = state.keyOctaveShift,
+                octaveShift = state.keyOctaveShift2,
                 isMirror = mirror,
                 onNoteOn = { vm.pressKey2(it) },
                 onNoteOff = { note, natural -> vm.releaseKey2(note, natural) },
@@ -148,12 +150,12 @@ fun PianoScreen(
                     keyboardContent2(false, Modifier.fillMaxWidth().weight(1f))
                 }
             }
-            // ── 자유 모드 1개: TopBar + 건반(90%) + 여백(10%) ──
+            // ── 자유 모드 1개: TopBar + 여백(10%) + 건반(90%, 하단 정렬) ──
             state.playMode == PlayMode.FREE -> {
                 Column(modifier = Modifier.fillMaxSize()) {
                     topBarContent()
-                    keyboardContent(false, Modifier.fillMaxWidth().weight(9f))
                     Spacer(modifier = Modifier.weight(1f))
+                    keyboardContent(false, Modifier.fillMaxWidth().weight(9f))
                 }
             }
             // ── 일반 모드: TopBar + ScoreArea + 건반(고정) ──

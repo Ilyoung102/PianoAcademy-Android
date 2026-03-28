@@ -37,6 +37,7 @@ data class PianoUiState(
     val bestScores: Map<String, Int> = emptyMap(),
     val wrongCount: Int = 0,
     val keyOctaveShift: Int = 0,
+    val keyOctaveShift2: Int = 0,
     val keyboardLayout: KeyboardLayout = KeyboardLayout.SINGLE,
     val activeKeys2: Set<String> = emptySet(),
     val isSustainPedal: Boolean = false,
@@ -78,6 +79,10 @@ class PianoViewModel(app: Application) : AndroidViewModel(app) {
 
     fun shiftKeyboard(delta: Int) {
         _uiState.update { it.copy(keyOctaveShift = (it.keyOctaveShift + delta).coerceIn(-2, 2)) }
+    }
+
+    fun shiftKeyboard2(delta: Int) {
+        _uiState.update { it.copy(keyOctaveShift2 = (it.keyOctaveShift2 + delta).coerceIn(-2, 2)) }
     }
 
     fun releaseKey(note: String, natural: Boolean = true) {

@@ -64,6 +64,8 @@ fun TopBar(
     onLoadMdFile: () -> Unit = {},
     keyboardLayout: KeyboardLayout = KeyboardLayout.SINGLE,
     onKeyboardLayoutChange: (KeyboardLayout) -> Unit = {},
+    keyOctaveShift2: Int = 0,
+    onShiftKeyboard2: (Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val levelCfg = LEVEL_CONFIG[selectedLevel]
@@ -176,14 +178,40 @@ fun TopBar(
 
                 Spacer(Modifier.weight(1f))
 
-                // 중앙: 미니 건반 프리뷰
-                MiniKeyboardPreview(
-                    octaveShift = keyOctaveShift,
-                    onShift = onShiftKeyboard,
-                    modifier = Modifier
-                        .height(30.dp)
-                        .width(260.dp)
-                )
+                // 중앙: 미니 건반 프리뷰 (DOUBLE/MIRROR 시 2개)
+                val isDualKb = playMode == PlayMode.FREE &&
+                    (keyboardLayout == KeyboardLayout.DOUBLE || keyboardLayout == KeyboardLayout.MIRROR)
+                if (isDualKb) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        // 건반2 프리뷰 (위 / 마주보기 상단)
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text("2", fontSize = 8.sp, color = PianoColors.TextMuted)
+                            MiniKeyboardPreview(
+                                octaveShift = keyOctaveShift2,
+                                onShift = onShiftKeyboard2,
+                                modifier = Modifier.height(13.dp).width(120.dp)
+                            )
+                        }
+                        // 건반1 프리뷰 (아래 / 일반)
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text("1", fontSize = 8.sp, color = PianoColors.TextMuted)
+                            MiniKeyboardPreview(
+                                octaveShift = keyOctaveShift,
+                                onShift = onShiftKeyboard,
+                                modifier = Modifier.height(13.dp).width(120.dp)
+                            )
+                        }
+                    }
+                } else {
+                    MiniKeyboardPreview(
+                        octaveShift = keyOctaveShift,
+                        onShift = onShiftKeyboard,
+                        modifier = Modifier.height(30.dp).width(260.dp)
+                    )
+                }
 
                 Spacer(Modifier.weight(1f))
 
